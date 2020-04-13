@@ -51,7 +51,7 @@ def make_figure(filename_uri, mode='layout'):
     return {'data':fig.data, 'layout':layout}
 
 
-filelist = ['/assets/driving.jpg', '/assets/rocket.jpg']
+filelist = [app.get_asset_url('driving.jpg'), app.get_asset_url('rocket.jpg')]
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
 options = ['car', 'truck', 'building', 'tree']
