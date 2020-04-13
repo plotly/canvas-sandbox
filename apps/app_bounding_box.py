@@ -51,7 +51,6 @@ def make_figure(filename_uri, mode='layout'):
     return {'data':fig.data, 'layout':layout}
 
 
-filelist = [app.get_asset_url('driving.jpg'), app.get_asset_url('rocket.jpg')]
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
 options = ['car', 'truck', 'building', 'tree']
@@ -59,6 +58,7 @@ options = ['car', 'truck', 'building', 'tree']
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
+filelist = [app.get_asset_url('driving.jpg'), app.get_asset_url('rocket.jpg')]
 server = app.server
 
 
