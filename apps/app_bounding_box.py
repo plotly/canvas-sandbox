@@ -58,7 +58,7 @@ options = ['car', 'truck', 'building', 'tree']
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-filelist = [app.get_asset_url('driving.jpg'), app.get_asset_url('rocket.jpg')]
+filelist = ['/apps/assets/driving.jpg', app.get_asset_url('rocket.jpg')]
 server = app.server
 
 print(filelist)
