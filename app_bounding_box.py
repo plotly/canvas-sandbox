@@ -39,6 +39,7 @@ def make_figure(filename_uri, mode='layout'):
     else:
         im = io.imread(filename_uri[1:])
         fig = go.Figure(go.Image(z=im))
+    fig.update_layout(margin=dict(t=0, b=0))
     layout = {}
     for key in fig.layout:
         layout[key] = fig.layout[key]
