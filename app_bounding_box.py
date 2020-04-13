@@ -13,19 +13,18 @@ def make_figure(filename_uri, mode='layout'):
     if mode == 'layout':
         fig = go.Figure()
 
-        im = Image.open(filename_uri)
-        width, height = im.size
         # Add trace
         fig.add_trace(
             go.Scatter(x=[], y=[])
         )
-        im = Image.open(filename_uri)
-        width, height = im.size
+        #im = Image.open(filename_uri)
+        #width, height = im.size
+        width, height = 300, 300
         print(width, height)
         # Add images
         fig.add_layout_image(
                 dict(
-                    source=im,
+                    source=filename_uri,
                     xref="x",
                     yref="y",
                     x=0,
