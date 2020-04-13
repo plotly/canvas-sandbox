@@ -19,8 +19,6 @@ def make_figure(filename_uri, mode='layout'):
         )
         im = Image.open(filename_uri[1:])
         width, height = im.size
-        #width, height = 300, 300
-        print(width, height)
         # Add images
         fig.add_layout_image(
                 dict(
@@ -57,21 +55,24 @@ options = ['car', 'truck', 'building', 'tree']
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-filelist = [app.get_asset_url('driving.jpg'), app.get_asset_url('rocket.jpg')]
-server = app.server
+filelist = [app.get_asset_url('driving.jpg'),
+            app.get_asset_url('professional-transport-autos-bridge-traffic-road-rush-hour.jpg'),
+            app.get_asset_url('rocket.jpg')]
 
+server = app.server
 
 fig = make_figure(filelist[0], mode='layout')
 fig['layout']['newshape']['line']['color'] = color_dict['car']
 
 app.layout=html.Div(
         [
+        html.H4("Draw bounding boxes around objects"),
         dcc.Graph(id='graph', figure=fig),
         dcc.Store(id='graph-copy', data=fig),
         dcc.Store(id='annotations-store', 
             data={filename:{'shapes':[]} for filename in filelist}),
         dcc.Store(id='image_files', data={'files':filelist, 'current':0}),
-        html.H4("Type of annotation"),
+        html.H6("Type of annotation"),
         dcc.RadioItems(id='radio',
             options=[{'label':opt, 'value':opt} for opt in color_dict.keys()],
             value=options[0],
@@ -79,7 +80,7 @@ app.layout=html.Div(
         ),
         html.Button('Previous', id='previous'),
         html.Button('Next', id='next'),
-        html.H4("How to display images"),
+        html.H6("How to display images"),
         dcc.RadioItems(id='mode',
             options=[{'label':'trace', 'value':'trace'},
                      {'label':'layout', 'value':'layout'}],
