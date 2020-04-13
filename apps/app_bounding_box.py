@@ -2,7 +2,7 @@ import dash
 from dash.dependencies import Input, Output, State
 import dash_html_components as html
 import dash_core_components as dcc
-from utils.utils import make_figure
+from utils import make_figure
 from glob import glob
 
 filelist = glob('assets/*.jpg')
