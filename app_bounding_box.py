@@ -41,7 +41,7 @@ def make_figure(filename_uri, mode='layout'):
     else:
         print(os.getcwd())
         print(os.listdir())
-        im = io.imread(filename_uri)
+        im = io.imread(filename_uri[1:])
         fig = go.Figure(go.Image(z=im))
     layout = {}
     for key in fig.layout:
