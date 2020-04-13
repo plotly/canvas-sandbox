@@ -17,9 +17,9 @@ def make_figure(filename_uri, mode='layout'):
         fig.add_trace(
             go.Scatter(x=[], y=[])
         )
-        #im = Image.open(filename_uri)
-        #width, height = im.size
-        width, height = 300, 300
+        im = Image.open(filename_uri[1:])
+        width, height = im.size
+        #width, height = 300, 300
         print(width, height)
         # Add images
         fig.add_layout_image(
@@ -39,8 +39,6 @@ def make_figure(filename_uri, mode='layout'):
         fig.update_xaxes(showgrid=False, range=(0, width))
         fig.update_yaxes(showgrid=False, scaleanchor='x', range=(0, height))
     else:
-        print(os.getcwd())
-        print(os.listdir())
         im = io.imread(filename_uri[1:])
         fig = go.Figure(go.Image(z=im))
     layout = {}
