@@ -7,7 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 from skimage import io
 from PIL import Image
-
+import os
 
 def make_figure(filename_uri, mode='layout'):
     if mode == 'layout':
@@ -39,6 +39,8 @@ def make_figure(filename_uri, mode='layout'):
         fig.update_xaxes(showgrid=False, range=(0, width))
         fig.update_yaxes(showgrid=False, scaleanchor='x', range=(0, height))
     else:
+        print(os.getcwd())
+        print(os.listdir())
         im = io.imread(filename_uri)
         fig = go.Figure(go.Image(z=im))
     layout = {}
