@@ -1,0 +1,4 @@
+dash
+scikit-image
+plotly
+gunicorn

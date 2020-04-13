@@ -27,6 +27,7 @@ app.layout=html.Div(
         dcc.Store(id='annotations-store', 
             data={filename:{'shapes':[]} for filename in filelist}),
         dcc.Store(id='image_files', data={'files':filelist, 'current':0}),
+        html.H4("Type of annotation"),
         dcc.RadioItems(id='radio',
             options=[{'label':opt, 'value':opt} for opt in color_dict.keys()],
             value=options[0],
@@ -34,6 +35,14 @@ app.layout=html.Div(
         ),
         html.Button('Previous', id='previous'),
         html.Button('Next', id='next'),
+        html.H4("How to display images"),
+        dcc.RadioItems(id='mode',
+            options=[{'label':'trace', 'value':'trace'},
+                     {'label':'layout', 'value':'layout'}],
+            value='layout',
+            labelStyle={'display': 'inline-block'}
+        ),
+
         ],
         style={'width':'50%'})
 
@@ -46,7 +55,6 @@ app.layout=html.Div(
      ]
     )
 def shape_added(fig_data, store_data, image_files):
-    print(fig_data)
     if fig_data and image_files and 'shapes' in fig_data:
         filename = image_files['files'][image_files['current']]
         store_data[filename]['shapes'] = fig_data['shapes']
@@ -58,10 +66,11 @@ def shape_added(fig_data, store_data, image_files):
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
     [dash.dependencies.Input('radio', 'value'),
-     dash.dependencies.Input('image_files', 'data')],
+     dash.dependencies.Input('image_files', 'data'),
+     dash.dependencies.Input('mode', 'value')],
     [dash.dependencies.State('annotations-store', 'data')]
     )
-def radio_pressed(val, image_files, store_data):
+def radio_pressed(val, image_files, mode, store_data):
     """
     When radio button changed OR current file changed, update figure.
     """
@@ -72,7 +81,7 @@ def radio_pressed(val, image_files, store_data):
         filename = image_files['files'][image_files['current']]
     else:
         filename = filelist[0]
-    fig = make_figure(filename, mode='layout')
+    fig = make_figure(filename, mode=mode)
     fig['layout']['shapes'] = store_data[image_files['files'][image_files['current']]]['shapes']
     fig['layout']['newshape']['line']['color'] = color_dict[val]
     return fig
@@ -93,7 +102,9 @@ def previousnext_pressed(n_clicks_back, n_clicks_fwd, image_files):
     ctx = dash.callback_context
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     current = image_files['current']
-    image_files['current'] = current + 1 if button_id == 'next' else current - 1
+    l = len(image_files['files'])
+    image_files['current'] = ((current + 1) % l if button_id == 'next'
+                                else (current - 1) % l)
     return image_files
 
 
