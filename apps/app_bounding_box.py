@@ -51,7 +51,7 @@ def make_figure(filename_uri, mode='layout'):
     return {'data':fig.data, 'layout':layout}
 
 
-filelist = glob('assets/*.jpg')
+filelist = glob('/assets/*.jpg')
 filelist.sort()
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
