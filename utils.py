@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 from skimage import io
 from PIL import Image
 import numpy as np
+import os
 
 def make_figure(filename_uri, mode='layout', dragmode='rectdraw'):
     if mode == 'layout':
@@ -11,7 +12,8 @@ def make_figure(filename_uri, mode='layout', dragmode='rectdraw'):
         fig.add_trace(
             go.Scatter(x=[], y=[])
         )
-        im = Image.open(filename_uri)
+        filename = os.path.join('assets', os.path.basename(filename_uri))
+        im = Image.open(filename)
         width, height = im.size
         # Add images
         fig.add_layout_image(

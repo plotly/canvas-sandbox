@@ -23,9 +23,8 @@ filelist = [app.get_asset_url('driving.jpg'),
 
 server = app.server
 
-#fig = make_figure(filelist[0], mode='layout')
-fig = go.Figure()
-# fig['layout']['newshape']['line']['color'] = color_dict['car']
+fig = make_figure(filelist[0], mode='layout')
+fig['layout']['newshape']['line']['color'] = color_dict['car']
 
 app.layout=html.Div(
         [
