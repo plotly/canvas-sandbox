@@ -9,6 +9,7 @@ import json
 from skimage import io, filters, segmentation
 import plotly.graph_objects as go
 from scipy.interpolate import interp1d
+import os
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
 options = ['car', 'truck', 'building', 'tree']
