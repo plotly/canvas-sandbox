@@ -4,8 +4,11 @@ import dash_html_components as html
 import dash_core_components as dcc
 from glob import glob
 import numpy as np
-from utils import make_figure, path_to_indices
-
+from utils import make_figure, path_to_indices, indices_to_path
+import json
+from skimage import io, filters, segmentation
+import plotly.graph_objects as go
+from scipy.interpolate import interp1d
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
 options = ['car', 'truck', 'building', 'tree']
@@ -13,13 +16,18 @@ options = ['car', 'truck', 'building', 'tree']
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-filelist = [app.get_asset_url('driving.jpg'),
+filelist = [
+            app.get_asset_url('lung_ct.jpg'),
+            app.get_asset_url('mri_head.jpg'),
+            app.get_asset_url('yogurt.jpg'),
+            app.get_asset_url('astronaut.png'),
+            app.get_asset_url('driving.jpg'),
             app.get_asset_url('professional-transport-autos-bridge-traffic-road-rush-hour.jpg'),
             app.get_asset_url('rocket.jpg')]
 
 server = app.server
 
-fig = make_figure(filelist[0], mode='layout')
+fig = make_figure(filelist[0], mode='layout', dragmode='closedfreedraw')
 fig['layout']['newshape']['line']['color'] = color_dict['car']
 
 app.layout=html.Div(
@@ -31,13 +39,9 @@ app.layout=html.Div(
             data={filename:{'shapes':[]} for filename in filelist}),
         dcc.Store(id='image_files', data={'files':filelist, 'current':0}),
         html.H6("Type of annotation"),
-        dcc.RadioItems(id='radio',
-            options=[{'label':opt, 'value':opt} for opt in color_dict.keys()],
-            value=options[0],
-            labelStyle={'display': 'inline-block'}
-        ),
         html.Button('Previous', id='previous'),
         html.Button('Next', id='next'),
+        html.Button('snap', id='snap'),
         html.H6("How to display images"),
         dcc.RadioItems(id='mode',
             options=[{'label':'trace', 'value':'trace'},
@@ -68,25 +72,58 @@ def shape_added(fig_data, store_data, image_files):
 
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
-    [dash.dependencies.Input('radio', 'value'),
+    [
      dash.dependencies.Input('image_files', 'data'),
-     dash.dependencies.Input('mode', 'value')],
+     dash.dependencies.Input('mode', 'value'),
+     dash.dependencies.Input('snap', 'n_clicks')
+     ],
     [dash.dependencies.State('annotations-store', 'data')]
     )
-def radio_pressed(val, image_files, mode, store_data):
+def radio_pressed(image_files, mode, snap, store_data):
     """
     When radio button changed OR current file changed, update figure.
     """
-    if val is None:
-        return dash.no_update
+    ctx = dash.callback_context
 
+    if not ctx.triggered:
+        button_id = 'No clicks yet'
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(button_id)
+    path = None
     if image_files:
         filename = image_files['files'][image_files['current']]
     else:
         filename = filelist[0]
-    fig = make_figure(filename, mode=mode)
+    fig = make_figure(filename, mode=mode, dragmode='closedfreedraw')
     fig['layout']['shapes'] = store_data[image_files['files'][image_files['current']]]['shapes']
-    fig['layout']['newshape']['line']['color'] = color_dict[val]
+    fig['layout']['newshape']['line']['color'] = color_dict['car']
+    fig['layout']['uirevision'] = filename
+    if button_id == 'snap':
+        path = path_to_indices(store_data[filename]['shapes'][-1]['path'])
+        t = np.linspace(0, 1, len(path))
+        t_full = np.linspace(0, 1, 80)
+        interp_row = interp1d(t, path[:, 0])
+        interp_col = interp1d(t, path[:, 1])
+        path = np.array([interp_row(t_full), interp_col(t_full)]).T
+    if path is not None:
+        img = io.imread(filename[1:], as_gray=True)
+        snake = segmentation.active_contour(
+                filters.gaussian(img, 3),
+                path[:, ::-1],
+                alpha=0.002, 
+                beta=0.001,
+                #gamma=0.001,
+                coordinates='rc')
+        print(snake)
+        # fig['data'] += (go.Scatter(x=snake[:, 1], y=snake[:, 0], line_width=6),)
+        path = indices_to_path(snake[:, ::-1])
+        new_shape = dict(store_data[filename]['shapes'][-1])
+        new_shape['path'] = path
+        new_shape['line']['color'] = 'orange'
+        fig['layout']['shapes'] += (new_shape,)
+
+
     return fig
 
 
