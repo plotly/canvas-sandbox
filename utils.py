@@ -11,7 +11,7 @@ def make_figure(filename_uri, mode='layout', dragmode='rectdraw'):
         fig.add_trace(
             go.Scatter(x=[], y=[])
         )
-        im = Image.open(filename_uri[1:])
+        im = Image.open(filename_uri)
         width, height = im.size
         # Add images
         fig.add_layout_image(
