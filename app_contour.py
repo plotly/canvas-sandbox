@@ -38,7 +38,7 @@ app.layout=html.Div(
         html.H6("Type of annotation"),
         html.Button('Previous', id='previous'),
         html.Button('Next', id='next'),
-        html.Button('snap', id='snap'),
+        html.Button('snap', id='Magic scissors'),
         html.H6("How to display images"),
         dcc.RadioItems(id='mode',
             options=[{'label':'trace', 'value':'trace'},
@@ -96,6 +96,7 @@ def radio_pressed(image_files, mode, snap, store_data):
     fig['layout']['shapes'] = store_data[image_files['files'][image_files['current']]]['shapes']
     fig['layout']['newshape']['line']['color'] = color_dict['car']
     fig['layout']['uirevision'] = filename
+    short_filename = os.path.join('assets', os.path.basename(filename))
     if button_id == 'snap':
         path = path_to_indices(store_data[filename]['shapes'][-1]['path'])
         t = np.linspace(0, 1, len(path))
@@ -104,7 +105,7 @@ def radio_pressed(image_files, mode, snap, store_data):
         interp_col = interp1d(t, path[:, 1])
         path = np.array([interp_row(t_full), interp_col(t_full)]).T
     if path is not None:
-        img = io.imread(filename[1:], as_gray=True)
+        img = io.imread(short_filename, as_gray=True)
         snake = segmentation.active_contour(
                 filters.gaussian(img, 3),
                 path[:, ::-1],
