@@ -5,7 +5,11 @@ import dash_core_components as dcc
 from glob import glob
 import numpy as np
 from utils import make_figure, path_to_indices
+import plotly.graph_objects as go
+import os
 
+print("we are in", os.getcwd())
+print(os.listdir())
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
 options = ['car', 'truck', 'building', 'tree']
@@ -19,8 +23,9 @@ filelist = [app.get_asset_url('driving.jpg'),
 
 server = app.server
 
-fig = make_figure(filelist[0], mode='layout')
-fig['layout']['newshape']['line']['color'] = color_dict['car']
+#fig = make_figure(filelist[0], mode='layout')
+fig = go.Figure()
+# fig['layout']['newshape']['line']['color'] = color_dict['car']
 
 app.layout=html.Div(
         [

@@ -19,10 +19,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 filelist = [
             app.get_asset_url('lung_ct.jpg'),
             app.get_asset_url('mri_head.jpg'),
-            app.get_asset_url('yogurt.jpg'),
             app.get_asset_url('astronaut.png'),
-            app.get_asset_url('driving.jpg'),
-            app.get_asset_url('professional-transport-autos-bridge-traffic-road-rush-hour.jpg'),
             app.get_asset_url('rocket.jpg')]
 
 server = app.server
