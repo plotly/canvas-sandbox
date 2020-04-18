@@ -1,1 +1,1 @@
-web: gunicorn app_bounding_box:server
+web: gunicorn app_contour:server
