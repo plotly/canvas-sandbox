@@ -38,7 +38,7 @@ app.layout=html.Div(
         html.H6("Type of annotation"),
         html.Button('Previous', id='previous'),
         html.Button('Next', id='next'),
-        html.Button('snap', id='Magic scissors'),
+        html.Button('Magic scissors', id='snap'),
         html.H6("How to display images"),
         dcc.RadioItems(id='mode',
             options=[{'label':'trace', 'value':'trace'},
