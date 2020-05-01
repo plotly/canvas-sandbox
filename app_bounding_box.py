@@ -7,9 +7,8 @@ import numpy as np
 from utils import make_figure, path_to_indices
 import plotly.graph_objects as go
 import os
+import re
 
-print("we are in", os.getcwd())
-print(os.listdir())
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
 options = ['car', 'truck', 'building', 'tree']
@@ -29,7 +28,7 @@ fig['layout']['newshape']['line']['color'] = color_dict['car']
 app.layout=html.Div(
         [
         html.H4("Draw bounding boxes around objects"),
-        dcc.Graph(id='graph', figure=fig),
+        dcc.Graph(id='graph', figure=fig, config={'modeBarButtonsToAdd':['drawrect', 'eraseshape']}),
         dcc.Store(id='graph-copy', data=fig),
         dcc.Store(id='annotations-store', 
             data={filename:{'shapes':[]} for filename in filelist}),
@@ -62,9 +61,21 @@ app.layout=html.Div(
      ]
     )
 def shape_added(fig_data, store_data, image_files):
+    print(fig_data)
     if fig_data and image_files and 'shapes' in fig_data:
         filename = image_files['files'][image_files['current']]
         store_data[filename]['shapes'] = fig_data['shapes']
+        return store_data
+    elif fig_data and image_files and re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0]):
+        print("landed here")
+        filename = image_files['files'][image_files['current']]
+        for key, val in fig_data.items():
+            shape_nb, coord = key.split('.')
+            # shape_nb is for example 'shapes[2].x0' we want the number
+            shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
+            print(key, val, store_data[filename]['shapes'][int(shape_nb)][coord], fig_data[key])
+            store_data[filename]['shapes'][int(shape_nb)][coord] = fig_data[key]
+            print(store_data[filename]['shapes'][int(shape_nb)][coord])
         return store_data
     else:
         return dash.no_update
