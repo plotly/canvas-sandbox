@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np
 import os
 
-def make_figure(filename_uri, mode='layout', dragmode='rectdraw'):
+def make_figure(filename_uri, mode='layout', dragmode='drawrect'):
     if mode == 'layout':
         fig = go.Figure()
 
