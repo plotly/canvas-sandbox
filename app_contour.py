@@ -14,8 +14,19 @@ import os
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
 options = ['car', 'truck', 'building', 'tree']
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__,
+    external_stylesheets = [
+        {
+            'href': 'https://unpkg.com/purecss@1.0.1/build/pure-min.css',
+            'rel': 'stylesheet',
+            'integrity': 'sha384-oAOxQR6DkCoMliIh8yFnu25d7Eq/PHS21PClpwjOTeU2jRSq11vu66rf90/cZr47',
+            'crossorigin': 'anonymous'
+        },
+        'https://unpkg.com/purecss@1.0.1/build/grids-responsive-min.css',
+        #'https://unpkg.com/purecss@1.0.1/build/base-min.css',
+    ],
+)
+
 
 filelist = [
             app.get_asset_url('lung_ct.jpg'),
@@ -25,32 +36,36 @@ filelist = [
 
 server = app.server
 
-fig = make_figure(filelist[0], mode='layout', dragmode='closedfreedraw')
+fig = make_figure(filelist[0], mode='layout', dragmode='drawclosedpath')
 fig['layout']['newshape']['line']['color'] = color_dict['car']
 
-app.layout=html.Div(
-        [
-        html.H4("Draw bounding boxes around objects"),
-        dcc.Graph(id='graph', figure=fig),
-        dcc.Store(id='graph-copy', data=fig),
-        dcc.Store(id='annotations-store', 
-            data={filename:{'shapes':[]} for filename in filelist}),
-        dcc.Store(id='image_files', data={'files':filelist, 'current':0}),
-        html.H6("Type of annotation"),
-        html.Button('Previous', id='previous'),
-        html.Button('Next', id='next'),
+app.layout=html.Div(children=[
+    html.Div(children=[
+        html.H3("Outline the contour of objects"),
         html.Button('Magic scissors', id='snap'),
-        html.H6("How to display images"),
+        html.H5("How to display images", style={'margin-top':'2em'}),
         dcc.RadioItems(id='mode',
             options=[{'label':'trace', 'value':'trace'},
                      {'label':'layout', 'value':'layout'}],
             value='layout',
             labelStyle={'display': 'inline-block'}
         ),
-
+        ], className="pure-u-1 pure-1-sm-1 pure-u-lg-6-24 pure-u-xl-6-24",
+        style={'background-color':'azure', 'height':'100%', 'padding':'3em'}),
+    html.Div([
+        dcc.Graph(id='graph', figure=fig, config={'modeBarButtonsToAdd':['drawclosedpath', 'eraseshape']}),
+        html.Div(children=[
+        html.Button('<< Previous', id='previous'),
+        html.Button('Next >>', id='next'),
+        ], style={'margin':'auto', 'text-align': 'center'}),
+        dcc.Store(id='graph-copy', data=fig),
+        dcc.Store(id='annotations-store', 
+            data={filename:{'shapes':[]} for filename in filelist}),
+        dcc.Store(id='image_files', data={'files':filelist, 'current':0}),
+        
         ],
-        style={'width':'50%'})
-
+        className="pure-u-1 pure-u-sm-1 pure-u-lg-15-24 pure-u-xl-15-24")
+])
 
 @app.callback(
     dash.dependencies.Output('annotations-store', 'data'),
@@ -60,6 +75,7 @@ app.layout=html.Div(
      ]
     )
 def shape_added(fig_data, store_data, image_files):
+    print(fig_data)
     if fig_data and image_files and 'shapes' in fig_data:
         filename = image_files['files'][image_files['current']]
         store_data[filename]['shapes'] = fig_data['shapes']
@@ -93,7 +109,7 @@ def radio_pressed(image_files, mode, snap, store_data):
         filename = image_files['files'][image_files['current']]
     else:
         filename = filelist[0]
-    fig = make_figure(filename, mode=mode, dragmode='closedfreedraw')
+    fig = make_figure(filename, mode=mode, dragmode='drawclosedpath')
     fig['layout']['shapes'] = store_data[image_files['files'][image_files['current']]]['shapes']
     fig['layout']['newshape']['line']['color'] = color_dict['car']
     fig['layout']['uirevision'] = filename
@@ -114,8 +130,6 @@ def radio_pressed(image_files, mode, snap, store_data):
                 beta=0.001,
                 #gamma=0.001,
                 coordinates='rc')
-        print(snake)
-        # fig['data'] += (go.Scatter(x=snake[:, 1], y=snake[:, 0], line_width=6),)
         path = indices_to_path(snake[:, ::-1])
         new_shape = dict(store_data[filename]['shapes'][-1])
         new_shape['path'] = path
@@ -148,5 +162,5 @@ def previousnext_pressed(n_clicks_back, n_clicks_fwd, image_files):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(port=8051, debug=True)
 
