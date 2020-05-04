@@ -28,7 +28,8 @@ fig['layout']['newshape']['line']['color'] = color_dict['car']
 app.layout=html.Div(
         [
         html.H4("Draw bounding boxes around objects"),
-        dcc.Graph(id='graph', figure=fig, config={'modeBarButtonsToAdd':['drawrect', 'eraseshape']}),
+        dcc.Graph(id='graph', figure=fig,
+            config={'modeBarButtonsToAdd':['drawrect', 'eraseshape']}),
         dcc.Store(id='graph-copy', data=fig),
         dcc.Store(id='annotations-store', 
             data={filename:{'shapes':[]} for filename in filelist}),
@@ -48,9 +49,41 @@ app.layout=html.Div(
             value='layout',
             labelStyle={'display': 'inline-block'}
         ),
+        html.H6("Load image set"),
+		dcc.Upload(
+			id='upload-images',
+			children=html.Div([
+				html.Button('Load...', id='load-images-button')
+			]),
+			# Allow multiple files to be uploaded
+			multiple=True
+		),
+		html.Div(id='filenames-display'),
 
         ],
         style={'width':'50%'})
+
+# Callback called when button pressed to upload images
+load_images_test=True
+if load_images_test:
+	@app.callback(
+		dash.dependencies.Output('filenames-display','children'),
+		[dash.dependencies.Input('upload-images','filename')])
+	def load_new_images(image_upload_filenames):
+		if image_upload_filenames is not None:
+			filelist = [app.get_asset_url(basename) for basename in image_upload_filenames]
+			return str(filelist)
+else:
+	@app.callback(
+		dash.dependencies.Output('image_files','data'),
+		[dash.dependencies.Input('upload-images','filename')])
+	def load_new_images(image_upload_filenames):
+		if image_upload_filenames is not None:
+			filelist = [app.get_asset_url(basename) for basename in image_upload_filenames]
+			return {
+				'files':filelist,
+				'current':0
+			}
 
 
 @app.callback(
@@ -64,16 +97,19 @@ def shape_added(fig_data, store_data, image_files):
     print(fig_data)
     if fig_data and image_files and 'shapes' in fig_data:
         filename = image_files['files'][image_files['current']]
+        print("storing annotation with %s" % (filename,))
         store_data[filename]['shapes'] = fig_data['shapes']
         return store_data
-    elif fig_data and image_files and re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0]):
-        print("landed here")
+    elif (fig_data and image_files and 
+          re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0])):
         filename = image_files['files'][image_files['current']]
+        print("recalling stored annotations for %s (?)", (filename,))
         for key, val in fig_data.items():
             shape_nb, coord = key.split('.')
             # shape_nb is for example 'shapes[2].x0' we want the number
             shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
-            print(key, val, store_data[filename]['shapes'][int(shape_nb)][coord], fig_data[key])
+            print(key, val, 
+                  store_data[filename]['shapes'][int(shape_nb)][coord], fig_data[key])
             store_data[filename]['shapes'][int(shape_nb)][coord] = fig_data[key]
             print(store_data[filename]['shapes'][int(shape_nb)][coord])
         return store_data
