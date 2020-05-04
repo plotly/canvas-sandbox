@@ -8,6 +8,7 @@ from utils import make_figure, path_to_indices
 import plotly.graph_objects as go
 import os
 import re
+import pdb
 
 
 color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
@@ -63,60 +64,6 @@ app.layout=html.Div(
         ],
         style={'width':'50%'})
 
-# Callback called when button pressed to upload images
-load_images_test=True
-if load_images_test:
-	@app.callback(
-		dash.dependencies.Output('filenames-display','children'),
-		[dash.dependencies.Input('upload-images','filename')])
-	def load_new_images(image_upload_filenames):
-		if image_upload_filenames is not None:
-			filelist = [app.get_asset_url(basename) for basename in image_upload_filenames]
-			return str(filelist)
-else:
-	@app.callback(
-		dash.dependencies.Output('image_files','data'),
-		[dash.dependencies.Input('upload-images','filename')])
-	def load_new_images(image_upload_filenames):
-		if image_upload_filenames is not None:
-			filelist = [app.get_asset_url(basename) for basename in image_upload_filenames]
-			return {
-				'files':filelist,
-				'current':0
-			}
-
-
-@app.callback(
-    dash.dependencies.Output('annotations-store', 'data'),
-    [dash.dependencies.Input('graph', 'relayoutData')],
-    [dash.dependencies.State('annotations-store', 'data'),
-     dash.dependencies.State('image_files', 'data')
-     ]
-    )
-def shape_added(fig_data, store_data, image_files):
-    print(fig_data)
-    if fig_data and image_files and 'shapes' in fig_data:
-        filename = image_files['files'][image_files['current']]
-        print("storing annotation with %s" % (filename,))
-        store_data[filename]['shapes'] = fig_data['shapes']
-        return store_data
-    elif (fig_data and image_files and 
-          re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0])):
-        filename = image_files['files'][image_files['current']]
-        print("recalling stored annotations for %s (?)", (filename,))
-        for key, val in fig_data.items():
-            shape_nb, coord = key.split('.')
-            # shape_nb is for example 'shapes[2].x0' we want the number
-            shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
-            print(key, val, 
-                  store_data[filename]['shapes'][int(shape_nb)][coord], fig_data[key])
-            store_data[filename]['shapes'][int(shape_nb)][coord] = fig_data[key]
-            print(store_data[filename]['shapes'][int(shape_nb)][coord])
-        return store_data
-    else:
-        return dash.no_update
-
-
 @app.callback(
     dash.dependencies.Output('graph', 'figure'),
     [dash.dependencies.Input('radio', 'value'),
@@ -136,32 +83,78 @@ def radio_pressed(val, image_files, mode, store_data):
     else:
         filename = filelist[0]
     fig = make_figure(filename, mode=mode)
-    fig['layout']['shapes'] = store_data[image_files['files'][image_files['current']]]['shapes']
+    fig['layout']['shapes'] = store_data[
+        image_files['files'][image_files['current']]]['shapes']
     fig['layout']['newshape']['line']['color'] = color_dict[val]
     return fig
 
 
 @app.callback(
-    dash.dependencies.Output('image_files', 'data'),
+    [dash.dependencies.Output('image_files', 'data'),
+     dash.dependencies.Output('annotations-store', 'data')],
     [dash.dependencies.Input('previous', 'n_clicks'),
-     dash.dependencies.Input('next', 'n_clicks')],
-    [dash.dependencies.State('image_files', 'data')]
+     dash.dependencies.Input('next', 'n_clicks'),
+     dash.dependencies.Input('upload-images','filename'),
+     dash.dependencies.Input('graph', 'relayoutData')],
+    [dash.dependencies.State('image_files', 'data'),
+     dash.dependencies.State('annotations-store', 'data')]
     )
-def previousnext_pressed(n_clicks_back, n_clicks_fwd, image_files):
+def images_annotations_update(
+    # inputs
+    n_clicks_back,
+    n_clicks_fwd,
+    image_upload_filenames,
+    graph_relayoutData,
+    # states
+    image_files,
+    annotations_store_data):
     """
-    Update current file when next or previous button is pressed. 
+    Update current file when next or previous button is pressed, or new images loaded. 
     """
-    if (n_clicks_back is None and n_clicks_fwd is None) or image_files is None:
+    #pdb.set_trace()
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if (changed_id == 'upload-images.filename') and (image_upload_filenames is not None):
+        filelist = [app.get_asset_url(basename) for basename in image_upload_filenames]
+        # TODO Here we should ask if we want to save the current annotations
+        return ({
+            'files':filelist,
+            'current':0
+        },{
+            filename:{'shapes':[]} for filename in filelist
+        })
+    elif changed_id == 'next.n_clicks':
+        l = len(image_files['files'])
+        current = image_files['current']
+        image_files['current'] = (current + 1) % l    
+        return (image_files,annotations_store_data)
+    elif changed_id == 'previous.n_clicks':
+        l = len(image_files['files'])
+        current = image_files['current']
+        image_files['current'] = (current - 1) % l    
+        return (image_files,annotations_store_data)
+    if changed_id == 'graph.relayoutData':
+        if 'shapes' in graph_relayoutData:
+            filename = image_files['files'][image_files['current']]
+            print("storing annotation with %s" % (filename,))
+            annotations_store_data[filename]['shapes'] = graph_relayoutData['shapes']
+        return (image_files,annotations_store_data)
+    if changed_id == 'graph.relayoutData':
+        if re.match('shapes\[[0-9]+\].x0', list(graph_relayoutData.keys())[0]):
+            filename = image_files['files'][image_files['current']]
+            print("recalling stored annotations for %s (?)", (filename,))
+            for key, val in graph_relayoutData.items():
+                shape_nb, coord = key.split('.')
+                # shape_nb is for example 'shapes[2].x0' we want the number
+                shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
+                print(key, val, 
+                      annotations_store_data[filename]['shapes'][int(shape_nb)][coord],
+                      graph_relayoutData[key])
+                annotations_store_data[filename]['shapes'][int(shape_nb)][coord] = \
+                    graph_relayoutData[key]
+                print(annotations_store_data[filename]['shapes'][int(shape_nb)][coord])
+        return (image_files,annotations_store_data)
+    else:
         return dash.no_update
-    ctx = dash.callback_context
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    current = image_files['current']
-    l = len(image_files['files'])
-    image_files['current'] = ((current + 1) % l if button_id == 'next'
-                                else (current - 1) % l)
-    return image_files
-
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
-
+    app.run_server(debug=True,threaded=False)
