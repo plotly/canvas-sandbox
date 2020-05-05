@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# create virtual environment
+[ -d "venv" ] || virtualenv venv
+
+source venv/bin/activate
+
+# install requirements
+[ "$VIRTUAL_ENV" == "" ] \
+    && echo "Error starting virtual environment." \
+    || pip install -r requirements.txt
+
+# don't forget to 
+#   source venv/bin/activate
+# before getting to work :-)
