@@ -2,6 +2,7 @@ import dash
 from dash.dependencies import Input, Output, State
 import dash_html_components as html
 import dash_core_components as dcc
+import dash_table
 from glob import glob
 import numpy as np
 from utils import make_figure, path_to_indices
@@ -9,10 +10,41 @@ import plotly.graph_objects as go
 import os
 import re
 
+# prepare bijective type<->color mapping
+typ_col_pairs=[('car','blue'), ('truck','red'), ('building','yellow'), ('tree','green')]
+# types to colors
+color_dict = {}
+# colors to types
+type_dict = {}
+for typ,col in typ_col_pairs: 
+    color_dict[typ]=col
+    type_dict[col]=typ
 
-color_dict = {'car':'blue', 'truck':'red', 'building':'yellow', 'tree':'green'}
-options = ['car', 'truck', 'building', 'tree']
+options = list(color_dict.keys())
+columns = [
+"Timestamp",
+"Type",
+"Top Left x",
+"Top Left y",
+"Bottom Right x",
+"Bottom Right y"
+]
 
+def column_name_to_id(n):
+    n=n.translate({ord(" "):ord("-")})
+    return 'annotations-table-column-%s'%(n,)
+
+def shape_to_table_row(sh):
+    k=column_name_to_id
+    return {
+        k("Timestamp"):0,
+        k("Type"):type_dict[sh['line']['color']],
+        k("Top Left x"):sh['x1'],
+        k("Top Left y"):sh['y1'],
+        k("Bottom Right x"):sh['x0'],
+        k("Bottom Right y"):sh['y0']
+    }
+    
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -28,7 +60,9 @@ fig['layout']['newshape']['line']['color'] = color_dict['car']
 app.layout=html.Div(
         [
         html.H4("Draw bounding boxes around objects"),
-        dcc.Graph(id='graph', figure=fig, config={'modeBarButtonsToAdd':['drawrect', 'eraseshape']}),
+        dcc.Graph(id='graph',
+                  figure=fig,
+                  config={'modeBarButtonsToAdd':['drawrect', 'eraseshape']}),
         dcc.Store(id='graph-copy', data=fig),
         dcc.Store(id='annotations-store', 
             data={filename:{'shapes':[]} for filename in filelist}),
@@ -48,62 +82,63 @@ app.layout=html.Div(
             value='layout',
             labelStyle={'display': 'inline-block'}
         ),
+        html.H6("Annotations"),
+        dash_table.DataTable(
+            id='annotations-table',
+            columns=[
+                dict(
+                    name=n,
+                    id=column_name_to_id(n)
+                ) for n in columns
+            ]
+
+        ),
 
         ],
         style={'width':'50%'})
 
 
 @app.callback(
-    dash.dependencies.Output('annotations-store', 'data'),
-    [dash.dependencies.Input('graph', 'relayoutData')],
-    [dash.dependencies.State('annotations-store', 'data'),
-     dash.dependencies.State('image_files', 'data')
-     ]
-    )
-def shape_added(fig_data, store_data, image_files):
-    print(fig_data)
-    if fig_data and image_files and 'shapes' in fig_data:
-        filename = image_files['files'][image_files['current']]
-        store_data[filename]['shapes'] = fig_data['shapes']
-        return store_data
-    elif fig_data and image_files and re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0]):
-        print("landed here")
-        filename = image_files['files'][image_files['current']]
-        for key, val in fig_data.items():
-            shape_nb, coord = key.split('.')
-            # shape_nb is for example 'shapes[2].x0' we want the number
-            shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
-            print(key, val, store_data[filename]['shapes'][int(shape_nb)][coord], fig_data[key])
-            store_data[filename]['shapes'][int(shape_nb)][coord] = fig_data[key]
-            print(store_data[filename]['shapes'][int(shape_nb)][coord])
-        return store_data
-    else:
-        return dash.no_update
-
-
-@app.callback(
-    dash.dependencies.Output('graph', 'figure'),
-    [dash.dependencies.Input('radio', 'value'),
+    [dash.dependencies.Output('annotations-store', 'data'),
+     dash.dependencies.Output('annotations-table', 'data'),
+     dash.dependencies.Output('graph', 'figure')],
+    [dash.dependencies.Input('graph', 'relayoutData'),
+     dash.dependencies.Input('radio', 'value'),
      dash.dependencies.Input('image_files', 'data'),
      dash.dependencies.Input('mode', 'value')],
-    [dash.dependencies.State('annotations-store', 'data')]
+    [dash.dependencies.State('annotations-store', 'data')])
+def shape_added(fig_data, radio_val, image_files, mode_val, store_data):
+    ret=None
+    filename = image_files['files'][image_files['current']]
+    cbcontext=[p['prop_id'] for p in dash.callback_context.triggered][0]
+    if cbcontext == 'graph.relayoutData':
+        try:
+            store_data[filename]['shapes'] = fig_data['shapes']
+        except KeyError:
+            store_data[filename]['shapes'] = ''
+    if cbcontext == 'image_files.data':
+        print("landed here")
+        for key, val in fig_data.items():
+            try:
+                shape_nb, coord = key.split('.')
+                # shape_nb is for example 'shapes[2].x0' we want the number
+                shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
+                print(key, val, store_data[filename]['shapes'][int(shape_nb)][coord],
+                    fig_data[key])
+                store_data[filename]['shapes'][int(shape_nb)][coord] = fig_data[key]
+                print(store_data[filename]['shapes'][int(shape_nb)][coord])
+            except ValueError:
+                pass
+    ret = (
+        store_data,
+        [shape_to_table_row(sh) for sh in store_data[filename]['shapes']]
     )
-def radio_pressed(val, image_files, mode, store_data):
-    """
-    When radio button changed OR current file changed, update figure.
-    """
-    if val is None:
-        return dash.no_update
-
-    if image_files:
-        filename = image_files['files'][image_files['current']]
-    else:
-        filename = filelist[0]
-    fig = make_figure(filename, mode=mode)
+    fig = make_figure(filename, mode=mode_val)
     fig['layout']['shapes'] = store_data[image_files['files'][image_files['current']]]['shapes']
-    fig['layout']['newshape']['line']['color'] = color_dict[val]
-    return fig
-
+    fig['layout']['newshape']['line']['color'] = color_dict[radio_val]
+    sd,td=ret
+    ret=(sd,td,fig)
+    return ret
 
 @app.callback(
     dash.dependencies.Output('image_files', 'data'),
