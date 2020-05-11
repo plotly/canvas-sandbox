@@ -112,14 +112,10 @@ def shape_added(fig_data, radio_val, image_files, mode_val, store_data):
     filename = image_files['files'][image_files['current']]
     cbcontext=[p['prop_id'] for p in dash.callback_context.triggered][0]
     if cbcontext == 'graph.relayoutData':
-        try:
+        if 'shapes' in fig_data.keys():
             store_data[filename]['shapes'] = fig_data['shapes']
-        except KeyError:
-            store_data[filename]['shapes'] = ''
-    if cbcontext == 'image_files.data':
-        print("landed here")
-        for key, val in fig_data.items():
-            try:
+        elif re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0]):
+            for key, val in fig_data.items():
                 shape_nb, coord = key.split('.')
                 # shape_nb is for example 'shapes[2].x0' we want the number
                 shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
@@ -127,8 +123,6 @@ def shape_added(fig_data, radio_val, image_files, mode_val, store_data):
                     fig_data[key])
                 store_data[filename]['shapes'][int(shape_nb)][coord] = fig_data[key]
                 print(store_data[filename]['shapes'][int(shape_nb)][coord])
-            except ValueError:
-                pass
     ret = (
         store_data,
         [shape_to_table_row(sh) for sh in store_data[filename]['shapes']]
