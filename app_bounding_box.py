@@ -59,13 +59,9 @@ def shape_cmp(s0, s1):
         (s0['line']['color'] == s1['line']['color']))
 
 
-class shape_in:
-    def __init__(self, se):
-        self.se = se
-
-    def __call__(self, s):
-        """ check if a shape is in list (done this way to use custom compare) """
-        return any(shape_cmp(s, s_) for s_ in self.se)
+def shape_in(se):
+    """ check if a shape is in list (done this way to use custom compare) """
+    return lambda s: any(shape_cmp(s, s_) for s_ in se)
 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -142,6 +138,17 @@ def store_shape_resize(store_data_for_file, fig_data):
     return store_data_for_file
 
 
+def shape_data_remove_timestamp(shape):
+    """
+    go.Figure complains if we include the 'timestamp' key when updating the
+    figure
+    """
+    new_shape = dict()
+    for k in (shape.keys() - set(['timestamp'])):
+        new_shape[k] = shape[k]
+    return new_shape
+
+
 @app.callback(
     [dash.dependencies.Output('annotations-store', 'data'),
      dash.dependencies.Output('annotations-table', 'data'),
@@ -152,7 +159,7 @@ def store_shape_resize(store_data_for_file, fig_data):
      dash.dependencies.Input('mode', 'value')],
     [dash.dependencies.State('annotations-store', 'data')])
 def update_graph_table_store(fig_data, radio_val, image_files, mode_val, store_data):
-    ret = None
+    return_value = None
     filename = image_files['files'][image_files['current']]
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if cbcontext == 'graph.relayoutData':
@@ -175,8 +182,8 @@ def update_graph_table_store(fig_data, radio_val, image_files, mode_val, store_d
             # find the old shapes to preserve them (rather than overwrite their
             # timestamp with the shape lacking a timestamp in fig_data['shapes'])
             old_shapes = list(filter(
-                shape_in(store_data[filename]['shapes']),
-                fig_data['shapes']))
+                shape_in(fig_data['shapes']),
+                store_data[filename]['shapes']))
             store_data[filename]['shapes'] = old_shapes + new_shapes
 
         elif re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0]):
@@ -184,19 +191,19 @@ def update_graph_table_store(fig_data, radio_val, image_files, mode_val, store_d
             # vertices), so we just update the specific shape
             store_data[filename] = store_shape_resize(
                 store_data[filename], fig_data)
-    ret = (
+    return_value = (
         store_data,
         [shape_to_table_row(sh) for sh in store_data[filename]['shapes']]
     )
     fig = make_figure(filename, mode=mode_val)
-    fig['layout']['shapes'] = store_data[image_files['files']
-                                         [image_files['current']]]['shapes']
-    fig['layout']['newshape']['line']['color'] = color_dict[radio_val]
-
+    fig.update_layout({'shapes': [shape_data_remove_timestamp(sh) for sh in
+                                  store_data[image_files['files']
+                                             [image_files['current']]]['shapes']],
+                       'newshape.line.color': color_dict[radio_val]})
     # append figure data
-    new_store_data, new_table_data = ret
-    ret = (new_store_data, new_table_data, fig)
-    return ret
+    new_store_data, new_table_data = return_value
+    return_value = (new_store_data, new_table_data, fig)
+    return return_value
 
 
 @app.callback(
