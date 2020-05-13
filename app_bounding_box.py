@@ -5,7 +5,7 @@ import dash_core_components as dcc
 import dash_table
 from glob import glob
 import numpy as np
-from utils import make_figure, path_to_indices
+from utils import make_figure, path_to_indices, Card
 import plotly.graph_objects as go
 import plotly.express as px
 import os
@@ -24,9 +24,10 @@ annotation_types=[
     'sidewalk',
     'car',
     'pedestrian',
-    'traffic light',
+    'cyclist',
     'stop sign',
-    'no parking sign',
+    'parking sign',
+    'traffic light',
     'lamp post',
     'star', # e.g., sun or moon as to not confuse them with artificial lighting
 ]
@@ -84,8 +85,8 @@ def shape_in(se):
     return lambda s: any(shape_cmp(s, s_) for s_ in se)
 
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+external_stylesheets = ['assets/app_bounding_box_style.css']
+app = dash.Dash(__name__,external_stylesheets=external_stylesheets)
 
 filelist = [app.get_asset_url('driving.jpg'),
             app.get_asset_url(
@@ -94,45 +95,74 @@ filelist = [app.get_asset_url('driving.jpg'),
 
 server = app.server
 
-fig = make_figure(filelist[0], mode='layout')
+fig = make_figure(filelist[0], mode='layout', show_axes=False)
 fig['layout']['newshape']['line']['color'] = color_dict[DEFAULT_ATYPE]
 
 app.layout = html.Div(
-    [
-        html.H4("Draw bounding boxes around objects"),
-        dcc.Graph(id='graph',
-                  figure=fig,
-                  config={'modeBarButtonsToAdd': ['drawrect', 'eraseshape']}),
-        dcc.Store(id='graph-copy', data=fig),
-        dcc.Store(id='annotations-store',
-                  data={filename: {'shapes': []} for filename in filelist}),
-        dcc.Store(id='image_files', data={'files': filelist, 'current': 0}),
-        html.H6("Type of annotation"),
-        dcc.Dropdown(
-            id='annotation-type-dropdown',
-            options=[{'label': t, 'value': t} for t in annotation_types],
-            value=DEFAULT_ATYPE,
-            clearable=False
-        ),
-        html.H6('Choose image'),
-        html.Button('Previous', id='previous'),
-        html.Button('Next', id='next'),
-        html.H6("Annotations"),
-        dash_table.DataTable(
-            id='annotations-table',
-            columns=[
-                dict(
-                    name=n,
-                    id=n
-                ) for n in columns
+    id='main',
+    children=[
+        # Main body
+        html.Div(
+            id="app-container",
+            children=[
+                # Banner display
+                html.Div(
+                    id="banner",
+                    children=[
+                        html.Img(
+                            id="logo", src=app.get_asset_url("dash-logo-new.png")
+                        ),
+                        html.H2("Bounding Box Classification App", id="title"),
+                    ],
+                ),
+                # Graph
+                dcc.Graph(id='graph',
+                    figure=fig,
+                    config={'modeBarButtonsToAdd': ['drawrect', 'eraseshape']},
+                ),
+                # Data table
+                dash_table.DataTable(
+                    id='annotations-table',
+                    columns=[
+                        dict(
+                            name=n,
+                            id=n
+                        ) for n in columns
+                    ]
+                )
             ]
-
         ),
-        html.A(id='download', download='annotations.json',
-               children='Download annotations'),
-        html.Div(id='debug-div')
+        # Sidebar
+        html.Div(
+            id="sidebar",
+            children=[
+                dcc.Store(id='graph-copy', data=fig),
+                dcc.Store(id='annotations-store',
+                          data={filename: {'shapes': []} for filename in filelist}),
+                dcc.Store(id='image_files', data={'files': filelist, 'current': 0}),
+                html.H6("Type of annotation"),
+                dcc.Dropdown(
+                    id='annotation-type-dropdown',
+                    options=[{'label': t, 'value': t} for t in annotation_types],
+                    value=DEFAULT_ATYPE,
+                    clearable=False
+                ),
+                html.H6('Choose image'),
+                html.Button('Previous', id='previous'),
+                html.Button('Next', id='next'),
+                html.H6("Annotations"),
+                # We use this pattern because we want to be able to download the
+                # annotations by clicking on a button
+                html.A(id='download', download='annotations.json',
+                       # make invisble, we just want it to click on it
+                       style={ 'display': 'none' }),
+                html.Button('Download annotations',
+                            id='download-button'),
+                html.Div(id='dummy',style={'display':'none'})
+            ]
+        )
     ],
-    style={'width': '50%'})
+)
 
 
 def store_shape_resize(store_data_for_file, fig_data):
@@ -212,7 +242,16 @@ def update_graph_table_store(fig_data, annotation_type, image_files, store_data)
     fig.update_layout({'shapes': [shape_data_remove_timestamp(sh) for sh in
                                   store_data[image_files['files']
                                              [image_files['current']]]['shapes']],
-                       'newshape.line.color': color_dict[annotation_type]})
+                       'newshape.line.color': color_dict[annotation_type],
+                       # reduce space between image and graph edges
+                       'margin':dict(
+                            l=0,
+                            r=0,
+                            b=0,
+                            t=0,
+                            pad=4
+                        )
+                      })
     # append figure data
     new_store_data, new_table_data = return_value
     return_value = (new_store_data, new_table_data, fig)
@@ -240,18 +279,35 @@ def previousnext_pressed(n_clicks_back, n_clicks_fwd, image_files):
     return image_files
 
 
+# set the download url to the contents of the annotations-store (so they can be
+# downloaded from the browser's memory)
 app.clientside_callback(
     """
 function(the_store_data) {
-    var s = JSON.stringify(the_store_data);
-    var b = new Blob([s],{type: 'text/plain'});
-    var url = URL.createObjectURL(b);
+    let s = JSON.stringify(the_store_data);
+    let b = new Blob([s],{type: 'text/plain'});
+    let url = URL.createObjectURL(b);
     return url;
 }
 """,
     Output('download', 'href'),
     [Input('annotations-store', 'data')]
 )
+
+# click on download link via button
+app.clientside_callback(
+"""
+function(download_button_n_clicks)
+{
+    let download_a=document.getElementById("download");
+    download_a.click();
+    return '';
+}
+""",
+    Output('dummy','children'),
+    [Input('download-button','n_clicks')]
+)
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

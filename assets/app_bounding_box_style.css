@@ -1,0 +1,41 @@
+/* -- style banner -- */
+
+#main {
+    width: 100%;
+    
+}
+
+#title {
+    text-align: center;
+}
+
+#app-container {
+    width: 600px;
+    float: left;
+    margin: 10px;
+}
+
+#sidebar {
+    width: 400px;
+    float: left;
+    margin: 10px;
+}
+
+/*
+#sidebar-contents {
+    position: absolute;
+    bottom: 0px;
+}
+*/
+
+#previous {
+    width: 50%;
+}
+
+#next {
+    width: 50%;
+}
+
+#download-button { 
+    width: 100%;
+}
