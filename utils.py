@@ -38,8 +38,7 @@ def make_figure(filename_uri, mode='layout', dragmode='drawrect'):
         fig = go.Figure(go.Image(z=im))
     fig.update_layout(margin=dict(t=0, b=0),
                       dragmode=dragmode,
-                      newshape_line={},
-                      activeshape={})
+                      )
     return fig
 
 
