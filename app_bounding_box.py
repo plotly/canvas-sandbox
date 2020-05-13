@@ -14,13 +14,27 @@ import uuid
 import time
 
 NUM_ATYPES=15
-DEFAULT_ATYPE='0'
 DEFAULT_FIG_MODE='layout'
+annotation_colormap=px.colors.qualitative.Light24
+annotation_types=[
+    'tree',
+    'building',
+    'sky',
+    'road',
+    'sidewalk',
+    'car',
+    'pedestrian',
+    'traffic light',
+    'stop sign',
+    'no parking sign',
+    'lamp post',
+    'star', # e.g., sun or moon as to not confuse them with artificial lighting
+]
+DEFAULT_ATYPE=annotation_types[0]
 
 # prepare bijective type<->color mapping
-annotation_colormap=px.colors.qualitative.Light24
-typ_col_pairs = [(str(n),annotation_colormap[n%len(annotation_colormap)])
-                 for n in range(NUM_ATYPES)]
+typ_col_pairs = [(t,annotation_colormap[n%len(annotation_colormap)])
+                 for n,t in enumerate(annotation_types)]
 # types to colors
 color_dict = {}
 # colors to types
@@ -96,8 +110,8 @@ app.layout = html.Div(
         html.H6("Type of annotation"),
         dcc.Dropdown(
             id='annotation-type-dropdown',
-            options=[{'label': str(n), 'value': str(n)} for n in range(NUM_ATYPES)],
-            value='0',
+            options=[{'label': t, 'value': t} for t in annotation_types],
+            value=DEFAULT_ATYPE,
             clearable=False
         ),
         html.H6('Choose image'),
