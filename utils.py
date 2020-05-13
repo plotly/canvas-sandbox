@@ -36,14 +36,10 @@ def make_figure(filename_uri, mode='layout', dragmode='drawrect'):
     else:
         im = io.imread(filename_uri[1:])
         fig = go.Figure(go.Image(z=im))
-    layout = {}
-    for key in fig.layout:
-        layout[key] = fig.layout[key]
-    layout['margin'] = dict(t=0, b=0)
-    layout['dragmode'] = dragmode
-    layout['newshape'] = {'line': {}}
-    layout['activeshape'] = {}
-    fig.update_layout(layout)
+    fig.update_layout(margin=dict(t=0, b=0),
+                      dragmode=dragmode,
+                      newshape_line={},
+                      activeshape={})
     return fig
 
 
