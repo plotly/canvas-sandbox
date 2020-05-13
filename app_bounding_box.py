@@ -7,14 +7,20 @@ from glob import glob
 import numpy as np
 from utils import make_figure, path_to_indices
 import plotly.graph_objects as go
+import plotly.express as px
 import os
 import re
 import uuid
 import time
 
+NUM_ATYPES=15
+DEFAULT_ATYPE='0'
+DEFAULT_FIG_MODE='layout'
+
 # prepare bijective type<->color mapping
-typ_col_pairs = [('car', 'blue'), ('truck', 'red'),
-                 ('building', 'yellow'), ('tree', 'green')]
+annotation_colormap=px.colors.qualitative.Light24
+typ_col_pairs = [(str(n),annotation_colormap[n%len(annotation_colormap)])
+                 for n in range(NUM_ATYPES)]
 # types to colors
 color_dict = {}
 # colors to types
@@ -75,7 +81,7 @@ filelist = [app.get_asset_url('driving.jpg'),
 server = app.server
 
 fig = make_figure(filelist[0], mode='layout')
-fig['layout']['newshape']['line']['color'] = color_dict['car']
+fig['layout']['newshape']['line']['color'] = color_dict[DEFAULT_ATYPE]
 
 app.layout = html.Div(
     [
@@ -88,21 +94,15 @@ app.layout = html.Div(
                   data={filename: {'shapes': []} for filename in filelist}),
         dcc.Store(id='image_files', data={'files': filelist, 'current': 0}),
         html.H6("Type of annotation"),
-        dcc.RadioItems(id='radio',
-                       options=[{'label': opt, 'value': opt}
-                                for opt in color_dict.keys()],
-                       value=options[0],
-                       labelStyle={'display': 'inline-block'}
-                       ),
+        dcc.Dropdown(
+            id='annotation-type-dropdown',
+            options=[{'label': str(n), 'value': str(n)} for n in range(NUM_ATYPES)],
+            value='0',
+            clearable=False
+        ),
+        html.H6('Choose image'),
         html.Button('Previous', id='previous'),
         html.Button('Next', id='next'),
-        html.H6("How to display images"),
-        dcc.RadioItems(id='mode',
-                       options=[{'label': 'trace', 'value': 'trace'},
-                                {'label': 'layout', 'value': 'layout'}],
-                       value='layout',
-                       labelStyle={'display': 'inline-block'}
-                       ),
         html.H6("Annotations"),
         dash_table.DataTable(
             id='annotations-table',
@@ -154,11 +154,10 @@ def shape_data_remove_timestamp(shape):
      dash.dependencies.Output('annotations-table', 'data'),
      dash.dependencies.Output('graph', 'figure')],
     [dash.dependencies.Input('graph', 'relayoutData'),
-     dash.dependencies.Input('radio', 'value'),
-     dash.dependencies.Input('image_files', 'data'),
-     dash.dependencies.Input('mode', 'value')],
+     dash.dependencies.Input('annotation-type-dropdown', 'value'),
+     dash.dependencies.Input('image_files', 'data')],
     [dash.dependencies.State('annotations-store', 'data')])
-def update_graph_table_store(fig_data, radio_val, image_files, mode_val, store_data):
+def update_graph_table_store(fig_data, annotation_type, image_files, store_data):
     return_value = None
     filename = image_files['files'][image_files['current']]
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
@@ -195,11 +194,11 @@ def update_graph_table_store(fig_data, radio_val, image_files, mode_val, store_d
         store_data,
         [shape_to_table_row(sh) for sh in store_data[filename]['shapes']]
     )
-    fig = make_figure(filename, mode=mode_val)
+    fig = make_figure(filename, mode=DEFAULT_FIG_MODE)
     fig.update_layout({'shapes': [shape_data_remove_timestamp(sh) for sh in
                                   store_data[image_files['files']
                                              [image_files['current']]]['shapes']],
-                       'newshape.line.color': color_dict[radio_val]})
+                       'newshape.line.color': color_dict[annotation_type]})
     # append figure data
     new_store_data, new_table_data = return_value
     return_value = (new_store_data, new_table_data, fig)
