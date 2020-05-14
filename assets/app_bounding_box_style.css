@@ -7,18 +7,28 @@
 
 #title {
     text-align: center;
+    border: 1.5px solid grey;
+    border-radius: 5px;
+    margin: 10px;
+    padding: 5px;
 }
 
 #app-container {
     width: 600px;
-    float: left;
     margin: 10px;
+    padding: 5px;
+    float: left;
+    border: 1.5px solid grey;
+    border-radius: 5px;
 }
 
 #sidebar {
     width: 400px;
-    float: left;
     margin: 10px;
+    padding: 5px;
+    float: left;
+    border: 1.5px solid grey;
+    border-radius: 5px;
 }
 
 /*

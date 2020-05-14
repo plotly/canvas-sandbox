@@ -5,7 +5,7 @@ import dash_core_components as dcc
 import dash_table
 from glob import glob
 import numpy as np
-from utils import make_figure, path_to_indices, Card
+from utils import make_figure, path_to_indices
 import plotly.graph_objects as go
 import plotly.express as px
 import os
@@ -101,20 +101,20 @@ fig['layout']['newshape']['line']['color'] = color_dict[DEFAULT_ATYPE]
 app.layout = html.Div(
     id='main',
     children=[
+        # Banner display
+        html.Div(
+            id="banner",
+            children=[
+                html.Img(
+                    id="logo", src=app.get_asset_url("dash-logo-new.png")
+                ),
+                html.H2("Bounding Box Classification App", id="title"),
+            ],
+        ),
         # Main body
         html.Div(
             id="app-container",
             children=[
-                # Banner display
-                html.Div(
-                    id="banner",
-                    children=[
-                        html.Img(
-                            id="logo", src=app.get_asset_url("dash-logo-new.png")
-                        ),
-                        html.H2("Bounding Box Classification App", id="title"),
-                    ],
-                ),
                 # Graph
                 dcc.Graph(id='graph',
                     figure=fig,
