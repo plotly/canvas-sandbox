@@ -1,8 +1,25 @@
 /* -- style banner -- */
 
 #main {
-    width: 100%;
-    
+    overflow: hidden;
+    display: inline-block;
+    background: lightgrey;
+    border-radius: 5px;
+}
+
+.button {
+    background: lightgrey;
+}
+
+#graph {
+    background: lightgrey;
+}
+
+#logo {
+    display: block;
+    margin: 10px;
+    padding: 5px;
+    width: 500px;
 }
 
 #title {
@@ -11,24 +28,29 @@
     border-radius: 5px;
     margin: 10px;
     padding: 5px;
+    display: inline-block;
+    width: 500px;
+    background: white;
 }
 
 #app-container {
-    width: 600px;
+    width: 500px;
     margin: 10px;
     padding: 5px;
-    float: left;
     border: 1.5px solid grey;
     border-radius: 5px;
+    float: left;
+    background: white;
 }
 
 #sidebar {
-    width: 400px;
+    width: 500px;
     margin: 10px;
     padding: 5px;
     float: left;
     border: 1.5px solid grey;
     border-radius: 5px;
+    background: white;
 }
 
 /*

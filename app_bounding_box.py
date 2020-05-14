@@ -148,8 +148,8 @@ app.layout = html.Div(
                     clearable=False
                 ),
                 html.H6('Choose image'),
-                html.Button('Previous', id='previous'),
-                html.Button('Next', id='next'),
+                html.Button('Previous', id='previous',className='button'),
+                html.Button('Next', id='next',className='button'),
                 html.H6("Annotations"),
                 # We use this pattern because we want to be able to download the
                 # annotations by clicking on a button
@@ -157,7 +157,8 @@ app.layout = html.Div(
                        # make invisble, we just want it to click on it
                        style={ 'display': 'none' }),
                 html.Button('Download annotations',
-                            id='download-button'),
+                            id='download-button',
+                            className='button'),
                 html.Div(id='dummy',style={'display':'none'})
             ]
         )
