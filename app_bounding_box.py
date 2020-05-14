@@ -56,7 +56,7 @@ columns = [
 
 
 def format_float(f):
-    return '%.2f' % (f,)
+    return '%.2f' % (float(f),)
 
 
 def shape_to_table_row(sh):
@@ -70,6 +70,38 @@ def shape_to_table_row(sh):
     }
 
 
+def default_table_row():
+    return {
+        "Timestamp": time.ctime(),
+        "Type": DEFAULT_ATYPE,
+        "X0": 10,
+        "Y0": 10,
+        "X1": 20,
+        "Y1": 20
+    }
+
+def table_row_to_shape(tr):
+    return {
+        "editable":True,
+        "xref":"x",
+        "yref":"y",
+        "layer":"above",
+        "opacity":1,
+        "line":{
+            "color":color_dict[tr['Type']],
+            "width":4,
+            "dash":"solid"
+        },
+        "fillcolor":"rgba(0, 0, 0, 0)",
+        "fillrule":"evenodd",
+        "type":"rect",
+        "x0":tr['X0'],
+        "y0":tr['Y0'],
+        "x1":tr['X1'],
+        "y1":tr['Y1'],
+        "timestamp":tr["Timestamp"]
+    }
+    
 def shape_cmp(s0, s1):
     """ Compare two shapes """
     return (
@@ -83,6 +115,34 @@ def shape_cmp(s0, s1):
 def shape_in(se):
     """ check if a shape is in list (done this way to use custom compare) """
     return lambda s: any(shape_cmp(s, s_) for s_ in se)
+
+
+def store_shape_resize(store_data_for_file, fig_data):
+    """
+    Extract the shape that was resized (its index) and store the resized
+    coordinates.
+    """
+    for key, val in fig_data.items():
+        shape_nb, coord = key.split('.')
+        # shape_nb is for example 'shapes[2].x0': this extracts the number
+        shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
+        store_data_for_file['shapes'][int(
+            shape_nb)][coord] = fig_data[key]
+        # update timestamp
+        store_data_for_file['shapes'][int(
+            shape_nb)]['timestamp'] = time.ctime()
+    return store_data_for_file
+
+
+def shape_data_remove_timestamp(shape):
+    """
+    go.Figure complains if we include the 'timestamp' key when updating the
+    figure
+    """
+    new_shape = dict()
+    for k in (shape.keys() - set(['timestamp'])):
+        new_shape[k] = shape[k]
+    return new_shape
 
 
 external_stylesheets = ['assets/app_bounding_box_style.css']
@@ -126,9 +186,19 @@ app.layout = html.Div(
                     columns=[
                         dict(
                             name=n,
-                            id=n
+                            id=n,
+                            presentation=('dropdown' if n == 'Type' else 'input')
                         ) for n in columns
-                    ]
+                    ],
+                    editable=True,
+                    dropdown={
+                        'Type': {
+                            'options':[
+                                {'label': o, 'value': o}
+                                for o in annotation_types
+                            ]
+                        }
+                    }
                 )
             ]
         ),
@@ -150,6 +220,7 @@ app.layout = html.Div(
                 html.H6('Choose image'),
                 html.Button('Previous', id='previous',className='button'),
                 html.Button('Next', id='next',className='button'),
+                html.Button('Add Shape', id='add-shape',className='button'),
                 html.H6("Annotations"),
                 # We use this pattern because we want to be able to download the
                 # annotations by clicking on a button
@@ -165,150 +236,75 @@ app.layout = html.Div(
     ],
 )
 
-
-def store_shape_resize(store_data_for_file, fig_data):
-    """
-    Extract the shape that was resized (its index) and store the resized
-    coordinates.
-    """
-    for key, val in fig_data.items():
-        shape_nb, coord = key.split('.')
-        # shape_nb is for example 'shapes[2].x0': this extracts the number
-        shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
-        store_data_for_file['shapes'][int(
-            shape_nb)][coord] = fig_data[key]
-        # update timestamp
-        store_data_for_file['shapes'][int(
-            shape_nb)]['timestamp'] = time.ctime()
-    return store_data_for_file
-
-
-def shape_data_remove_timestamp(shape):
-    """
-    go.Figure complains if we include the 'timestamp' key when updating the
-    figure
-    """
-    new_shape = dict()
-    for k in (shape.keys() - set(['timestamp'])):
-        new_shape[k] = shape[k]
-    return new_shape
-
-
 @app.callback(
-    [dash.dependencies.Output('annotations-store', 'data'),
-     dash.dependencies.Output('annotations-table', 'data'),
-     dash.dependencies.Output('graph', 'figure')],
-    [dash.dependencies.Input('graph', 'relayoutData'),
-     dash.dependencies.Input('annotation-type-dropdown', 'value'),
-     dash.dependencies.Input('image_files', 'data')],
-    [dash.dependencies.State('annotations-store', 'data')])
-def update_graph_table_store(fig_data, annotation_type, image_files, store_data):
-    return_value = None
-    filename = image_files['files'][image_files['current']]
+    [Output('annotations-table','data'),
+     Output('image_files','data')],
+    [Input('add-shape','n_clicks'),
+     Input('previous','n_clicks'),
+     Input('next','n_clicks')],
+    [State('annotations-table','data'),
+     State('image_files','data'),
+     State('annotations-store','data')]
+)
+def modify_table_entries(add_shape_n_clicks,
+                         previous_n_clicks,
+                         next_n_clicks,
+                         annotations_table_data,
+                         image_files_data,
+                         annotations_store_data):
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    if cbcontext == 'graph.relayoutData':
-        if 'shapes' in fig_data.keys():
-            # this means all the shapes have been passed to this function via
-            # fig_data, so we store them
-
-            # in the case where shapes have been added, we need to find new
-            # shapes to add the timestamp to them
-            # we preserve the old shapes because they have the timestamp added
-            # to them already, which we don't want to replace
-
-            # find the shapes that are new
-            new_shapes = list(filter(
-                lambda s: not shape_in(store_data[filename]['shapes'])(s),
-                fig_data['shapes']))
-            # add timestamps to the new shapes
-            for s in new_shapes:
-                s['timestamp'] = time.ctime()
-            # find the old shapes to preserve them (rather than overwrite their
-            # timestamp with the shape lacking a timestamp in fig_data['shapes'])
-            old_shapes = list(filter(
-                shape_in(fig_data['shapes']),
-                store_data[filename]['shapes']))
-            store_data[filename]['shapes'] = old_shapes + new_shapes
-
-        elif re.match('shapes\[[0-9]+\].x0', list(fig_data.keys())[0]):
-            # this means a shape was updated (e.g., by clicking and dragging its
-            # vertices), so we just update the specific shape
-            store_data[filename] = store_shape_resize(
-                store_data[filename], fig_data)
-    return_value = (
-        store_data,
-        [shape_to_table_row(sh) for sh in store_data[filename]['shapes']]
-    )
-    fig = make_figure(filename, mode=DEFAULT_FIG_MODE)
-    fig.update_layout({'shapes': [shape_data_remove_timestamp(sh) for sh in
-                                  store_data[image_files['files']
-                                             [image_files['current']]]['shapes']],
-                       'newshape.line.color': color_dict[annotation_type],
-                       # reduce space between image and graph edges
-                       'margin':dict(
-                            l=0,
-                            r=0,
-                            b=0,
-                            t=0,
-                            pad=4
-                        )
-                      })
-    # append figure data
-    new_store_data, new_table_data = return_value
-    return_value = (new_store_data, new_table_data, fig)
-    return return_value
-
+    if cbcontext == 'add-shape.n_clicks':
+        if annotations_table_data is None:
+            annotations_table_data = []
+        annotations_table_data.append(default_table_row())
+        return (annotations_table_data,image_files_data)
+    image_index_change=0
+    if cbcontext == 'previous.n_clicks':
+        image_index_change=-1
+    if cbcontext == 'next.n_clicks':
+        image_index_change=1
+    image_files_data['current']+=image_index_change
+    image_files_data['current']%=len(image_files_data['files'])
+    if image_index_change != 0:
+        # image changed, update annotations_table_data with new data
+        annotations_table_data=[]
+        filename=image_files_data['files'][image_files_data['current']]
+        print(annotations_store_data[filename])
+        for sh in annotations_store_data[filename]['shapes']:
+            annotations_table_data.append(shape_to_table_row(sh))
+        return (annotations_table_data,image_files_data)
+    else:
+        return dash.no_update
 
 @app.callback(
-    dash.dependencies.Output('image_files', 'data'),
-    [dash.dependencies.Input('previous', 'n_clicks'),
-     dash.dependencies.Input('next', 'n_clicks')],
-    [dash.dependencies.State('image_files', 'data')]
+    [Output('graph','figure'),
+     Output('annotations-store','data')],
+    [Input('annotations-table','data')],
+    [State('image_files','data'),
+     State('annotations-store','data')]
 )
-def previousnext_pressed(n_clicks_back, n_clicks_fwd, image_files):
-    """
-    Update current file when next or previous button is pressed. 
-    """
-    if (n_clicks_back is None and n_clicks_fwd is None) or image_files is None:
-        return dash.no_update
-    ctx = dash.callback_context
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    current = image_files['current']
-    l = len(image_files['files'])
-    image_files['current'] = ((current + 1) % l if button_id == 'next'
-                              else (current - 1) % l)
-    return image_files
-
-
-# set the download url to the contents of the annotations-store (so they can be
-# downloaded from the browser's memory)
-app.clientside_callback(
-    """
-function(the_store_data) {
-    let s = JSON.stringify(the_store_data);
-    let b = new Blob([s],{type: 'text/plain'});
-    let url = URL.createObjectURL(b);
-    return url;
-}
-""",
-    Output('download', 'href'),
-    [Input('annotations-store', 'data')]
-)
-
-# click on download link via button
-app.clientside_callback(
-"""
-function(download_button_n_clicks)
-{
-    let download_a=document.getElementById("download");
-    download_a.click();
-    return '';
-}
-""",
-    Output('dummy','children'),
-    [Input('download-button','n_clicks')]
-)
-
+def send_figure_to_graph(annotations_table_data,
+                         image_files_data,
+                         annotations_store):
+    if annotations_table_data is not None:
+        filename=image_files_data['files'][image_files_data['current']]
+        fig = make_figure(filename, mode=DEFAULT_FIG_MODE)
+        shapes=[table_row_to_shape(row)
+                for row in annotations_table_data]
+        fig.update_layout({
+            'shapes': [shape_data_remove_timestamp(sh) for sh in shapes],
+            # 'newshape.line.color': color_dict[annotation_type],
+            # reduce space between image and graph edges
+            'margin': dict(
+                l = 0,
+                r = 0,
+                b = 0,
+                t = 0,
+                pad = 4)
+        })
+        annotations_store[filename]['shapes']=shapes
+        return (fig,annotations_store)
+    return dash.no_update
 
 if __name__ == '__main__':
     app.run_server(debug=True)

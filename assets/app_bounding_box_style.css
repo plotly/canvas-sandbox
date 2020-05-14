@@ -1,10 +1,12 @@
 /* -- style banner -- */
 
 #main {
-    overflow: hidden;
     display: inline-block;
     background: lightgrey;
     border-radius: 5px;
+}
+
+#annotations-table {
 }
 
 .button {
