@@ -46,7 +46,6 @@ for typ, col in typ_col_pairs:
 
 options = list(color_dict.keys())
 columns = [
-    "Timestamp",
     "Type",
     "X0",
     "Y0",
@@ -61,23 +60,21 @@ def format_float(f):
 
 def shape_to_table_row(sh):
     return {
-        "Timestamp": sh['timestamp'],
         "Type": type_dict[sh['line']['color']],
-        "X0": format_float(sh['x1']),
-        "Y0": format_float(sh['y1']),
-        "X1": format_float(sh['x0']),
-        "Y1": format_float(sh['y0'])
+        "X0": format_float(sh['x0']),
+        "Y0": format_float(sh['y0']),
+        "X1": format_float(sh['x1']),
+        "Y1": format_float(sh['y1'])
     }
 
 
 def default_table_row():
     return {
-        "Timestamp": time.ctime(),
         "Type": DEFAULT_ATYPE,
-        "X0": 10,
-        "Y0": 10,
-        "X1": 20,
-        "Y1": 20
+        "X0": format_float(10),
+        "Y0": format_float(10),
+        "X1": format_float(20),
+        "Y1": format_float(20)
     }
 
 def table_row_to_shape(tr):
@@ -99,7 +96,6 @@ def table_row_to_shape(tr):
         "y0":tr['Y0'],
         "x1":tr['X1'],
         "y1":tr['Y1'],
-        "timestamp":tr["Timestamp"]
     }
     
 def shape_cmp(s0, s1):
@@ -180,25 +176,37 @@ app.layout = html.Div(
                     figure=fig,
                     config={'modeBarButtonsToAdd': ['drawrect', 'eraseshape']},
                 ),
-                # Data table
-                dash_table.DataTable(
-                    id='annotations-table',
-                    columns=[
-                        dict(
-                            name=n,
-                            id=n,
-                            presentation=('dropdown' if n == 'Type' else 'input')
-                        ) for n in columns
-                    ],
-                    editable=True,
-                    dropdown={
-                        'Type': {
-                            'options':[
-                                {'label': o, 'value': o}
-                                for o in annotation_types
-                            ]
-                        }
-                    }
+                html.Div(id='table-container',
+                    children=[
+                        # Timestamp table
+                        dash_table.DataTable(
+                            id='timestamp-table',
+                            columns=[{
+                                'name': 'Timestamp',
+                                'id': 'Timestamp'
+                            }]
+                        ),
+                        # Data table
+                        dash_table.DataTable(
+                            id='annotations-table',
+                            columns=[
+                                dict(
+                                    name=n,
+                                    id=n,
+                                    presentation=('dropdown' if n == 'Type' else 'input')
+                                ) for n in columns
+                            ],
+                            editable=True,
+                            dropdown={
+                                'Type': {
+                                    'options':[
+                                        {'label': o, 'value': o}
+                                        for o in annotation_types
+                                    ]
+                                }
+                            }
+                        )
+                    ]
                 )
             ]
         ),
@@ -262,7 +270,8 @@ def modify_table_entries(add_shape_n_clicks,
             annotations_table_data = []
         row=default_table_row()
         row['Type']=annotation_type
-        annotations_table_data.append(row)
+        if row not in annotations_table_data:
+            annotations_table_data.append(row)
         return (annotations_table_data,image_files_data)
     image_index_change=0
     if cbcontext == 'previous.n_clicks':
@@ -284,7 +293,8 @@ def modify_table_entries(add_shape_n_clicks,
 
 @app.callback(
     [Output('graph','figure'),
-     Output('annotations-store','data')],
+     Output('annotations-store','data'),
+     Output('timestamp-table','data')],
     [Input('annotations-table','data')],
     [State('image_files','data'),
      State('annotations-store','data')]
@@ -294,9 +304,21 @@ def send_figure_to_graph(annotations_table_data,
                          annotations_store):
     if annotations_table_data is not None:
         filename=image_files_data['files'][image_files_data['current']]
+        # convert table rows to those understood by fig.update_layout
+        fig_shapes=[table_row_to_shape(sh) for sh in annotations_table_data]
+        # find the shapes that are new
+        new_shapes = list(filter(
+            lambda s: not shape_in(annotations_store[filename]['shapes'])(s),
+            fig_shapes))
+        # add timestamps to the new shapes
+        for s in new_shapes:
+            s['timestamp'] = time.ctime()
+        # find the old shapes in order to look up their timestamps
+        old_shapes = list(filter(
+            shape_in(fig_shapes),
+            annotations_store[filename]['shapes']))
         fig = make_figure(filename, mode=DEFAULT_FIG_MODE)
-        shapes=[table_row_to_shape(row)
-                for row in annotations_table_data]
+        shapes=old_shapes+new_shapes
         fig.update_layout({
             'shapes': [shape_data_remove_timestamp(sh) for sh in shapes],
             # 'newshape.line.color': color_dict[annotation_type],
@@ -309,7 +331,7 @@ def send_figure_to_graph(annotations_table_data,
                 pad = 4)
         })
         annotations_store[filename]['shapes']=shapes
-        return (fig,annotations_store)
+        return (fig,annotations_store,[{'Timestamp':s['timestamp']} for s in shapes])
     return dash.no_update
 
 if __name__ == '__main__':

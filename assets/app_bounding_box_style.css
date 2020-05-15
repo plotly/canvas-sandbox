@@ -34,6 +34,17 @@
     width: 500px;
     background: white;
 }
+#table-container {}
+    
+#timestamp-table {
+    width:20%;
+    float:left;
+}
+
+#annotations-table {
+    width:80%;
+    float:left;
+}
 
 #app-container {
     width: 500px;
