@@ -161,8 +161,16 @@ filelist = [app.get_asset_url('driving.jpg'),
 
 server = app.server
 
-fig = make_figure(filelist[0], mode='layout', show_axes=False)
-fig['layout']['newshape']['line']['color'] = color_dict[DEFAULT_ATYPE]
+fig = make_figure(filelist[0], mode=DEFAULT_FIG_MODE)
+fig.update_layout({
+    'newshape.line.color': color_dict[DEFAULT_ATYPE],
+    'margin': dict(
+        l = 0,
+        r = 0,
+        b = 0,
+        t = 0,
+        pad = 4)
+})
 
 app.layout = html.Div(
     id='main',
@@ -350,8 +358,8 @@ def send_figure_to_graph(annotations_table_data,
         old_shapes = list(filter(
             shape_in(fig_shapes),
             annotations_store[filename]['shapes']))
-        fig = make_figure(filename, mode=DEFAULT_FIG_MODE)
         shapes=old_shapes+new_shapes
+        fig = make_figure(filename, mode=DEFAULT_FIG_MODE)
         fig.update_layout({
             'shapes': [shape_data_remove_timestamp(sh) for sh in shapes],
             # 'newshape.line.color': color_dict[annotation_type],
@@ -367,6 +375,37 @@ def send_figure_to_graph(annotations_table_data,
         annotations_store[filename]['shapes']=shapes
         return (fig,annotations_store,[{'Timestamp':s['timestamp']} for s in shapes])
     return dash.no_update
+
+# set the download url to the contents of the annotations-store (so they can be
+# downloaded from the browser's memory)
+app.clientside_callback(
+    """
+function(the_store_data) {
+    let s = JSON.stringify(the_store_data);
+    let b = new Blob([s],{type: 'text/plain'});
+    let url = URL.createObjectURL(b);
+    return url;
+}
+""",
+    Output('download', 'href'),
+    [Input('annotations-store', 'data')]
+)
+
+# click on download link via button
+app.clientside_callback(
+"""
+function(download_button_n_clicks)
+{
+    let download_a=document.getElementById("download");
+    download_a.click();
+    return '';
+}
+""",
+    Output('dummy','children'),
+    [Input('download-button','n_clicks')]
+)
+
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
