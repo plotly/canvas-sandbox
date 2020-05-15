@@ -53,6 +53,12 @@ columns = [
     "Y1"
 ]
 
+def coord_to_tab_column(coord):
+    return coord.upper()
+
+def time_passed(start=0):
+    return round(time.mktime(time.localtime()))-start
+
 
 def format_float(f):
     return '%.2f' % (float(f),)
@@ -113,21 +119,25 @@ def shape_in(se):
     return lambda s: any(shape_cmp(s, s_) for s_ in se)
 
 
-def store_shape_resize(store_data_for_file, fig_data):
+def annotations_table_shape_resize(annotations_table_data, fig_data):
     """
     Extract the shape that was resized (its index) and store the resized
     coordinates.
     """
+    print('fig_data',fig_data)
+    print('table_data',annotations_table_data)
     for key, val in fig_data.items():
         shape_nb, coord = key.split('.')
         # shape_nb is for example 'shapes[2].x0': this extracts the number
         shape_nb = shape_nb.split('.')[0].split('[')[-1].split(']')[0]
-        store_data_for_file['shapes'][int(
-            shape_nb)][coord] = fig_data[key]
-        # update timestamp
-        store_data_for_file['shapes'][int(
-            shape_nb)]['timestamp'] = time.ctime()
-    return store_data_for_file
+        # this should correspond to the same row in the data table
+        # we have to format the float here because this is exactly the entry in
+        # the table
+        annotations_table_data[int(
+            shape_nb)][coord_to_tab_column(coord)] = format_float(fig_data[key])
+        # (no need to compute a time stamp, that is done for any change in the
+        # table values, so will be done later)
+    return annotations_table_data
 
 
 def shape_data_remove_timestamp(shape):
@@ -216,7 +226,11 @@ app.layout = html.Div(
             children=[
                 dcc.Store(id='graph-copy', data=fig),
                 dcc.Store(id='annotations-store',
-                          data={filename: {'shapes': []} for filename in filelist}),
+                          data=dict(
+                            **{filename: {'shapes': []} for filename in filelist},
+                            **{'starttime': time_passed()}
+                          )
+                ),
                 dcc.Store(id='image_files', data={'files': filelist, 'current': 0}),
                 html.H6("Type of annotation"),
                 dcc.Dropdown(
@@ -265,6 +279,23 @@ def modify_table_entries(add_shape_n_clicks,
                          annotations_store_data,
                          annotation_type):
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if cbcontext == 'graph.relayoutData':
+        if 'shapes' in graph_relayoutData.keys():
+            # this means all the shapes have been passed to this function via
+            # graph_relayoutData, so we store them
+            annotations_table_data=[
+                shape_to_table_row(sh) for sh in graph_relayoutData['shapes']
+            ]
+        elif re.match('shapes\[[0-9]+\].x0', list(graph_relayoutData.keys())[0]):
+            # this means a shape was updated (e.g., by clicking and dragging its
+            # vertices), so we just update the specific shape
+            annotations_table_data = annotations_table_shape_resize(
+                annotations_table_data,
+                graph_relayoutData)
+        if annotations_table_data is None:
+            return dash.no_update
+        else:
+            return (annotations_table_data,image_files_data)
     if cbcontext == 'add-shape.n_clicks':
         if annotations_table_data is None:
             annotations_table_data = []
@@ -295,11 +326,13 @@ def modify_table_entries(add_shape_n_clicks,
     [Output('graph','figure'),
      Output('annotations-store','data'),
      Output('timestamp-table','data')],
-    [Input('annotations-table','data')],
+    [Input('annotations-table','data'),
+     Input('annotation-type-dropdown','value')],
     [State('image_files','data'),
      State('annotations-store','data')]
 )
 def send_figure_to_graph(annotations_table_data,
+                         annotation_type,
                          image_files_data,
                          annotations_store):
     if annotations_table_data is not None:
@@ -312,7 +345,7 @@ def send_figure_to_graph(annotations_table_data,
             fig_shapes))
         # add timestamps to the new shapes
         for s in new_shapes:
-            s['timestamp'] = time.ctime()
+            s['timestamp'] = time_passed(annotations_store['starttime'])
         # find the old shapes in order to look up their timestamps
         old_shapes = list(filter(
             shape_in(fig_shapes),
@@ -323,6 +356,7 @@ def send_figure_to_graph(annotations_table_data,
             'shapes': [shape_data_remove_timestamp(sh) for sh in shapes],
             # 'newshape.line.color': color_dict[annotation_type],
             # reduce space between image and graph edges
+            'newshape.line.color': color_dict[annotation_type],
             'margin': dict(
                 l = 0,
                 r = 0,
