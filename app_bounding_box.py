@@ -241,22 +241,28 @@ app.layout = html.Div(
      Output('image_files','data')],
     [Input('add-shape','n_clicks'),
      Input('previous','n_clicks'),
-     Input('next','n_clicks')],
+     Input('next','n_clicks'),
+     Input('graph','relayoutData')],
     [State('annotations-table','data'),
      State('image_files','data'),
-     State('annotations-store','data')]
+     State('annotations-store','data'),
+     State('annotation-type-dropdown','value')]
 )
 def modify_table_entries(add_shape_n_clicks,
                          previous_n_clicks,
                          next_n_clicks,
+                         graph_relayoutData,
                          annotations_table_data,
                          image_files_data,
-                         annotations_store_data):
+                         annotations_store_data,
+                         annotation_type):
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if cbcontext == 'add-shape.n_clicks':
         if annotations_table_data is None:
             annotations_table_data = []
-        annotations_table_data.append(default_table_row())
+        row=default_table_row()
+        row['Type']=annotation_type
+        annotations_table_data.append(row)
         return (annotations_table_data,image_files_data)
     image_index_change=0
     if cbcontext == 'previous.n_clicks':
