@@ -108,7 +108,6 @@ app.layout = html.Div(
                 html.H1("Bounding Box Classification App", id="title"),
                 html.Img(
                     id="logo", src=app.get_asset_url("dash-logo-new.png"),
-                    width='6%'
                     ),
             ],
         className="eleven columns"
