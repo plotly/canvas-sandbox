@@ -85,7 +85,7 @@ def shape_in(se):
     return lambda s: any(shape_cmp(s, s_) for s_ in se)
 
 
-external_stylesheets = ['assets/app_bounding_box_style.css']
+external_stylesheets = ['assets/style.css', 'assets/app_bounding_box_style.css']
 app = dash.Dash(__name__,external_stylesheets=external_stylesheets)
 
 filelist = [app.get_asset_url('driving.jpg'),
@@ -105,11 +105,13 @@ app.layout = html.Div(
         html.Div(
             id="banner",
             children=[
+                html.H1("Bounding Box Classification App", id="title"),
                 html.Img(
-                    id="logo", src=app.get_asset_url("dash-logo-new.png")
-                ),
-                html.H2("Bounding Box Classification App", id="title"),
+                    id="logo", src=app.get_asset_url("dash-logo-new.png"),
+                    width='6%'
+                    ),
             ],
+        className="eleven columns"
         ),
         # Main body
         html.Div(
@@ -130,7 +132,8 @@ app.layout = html.Div(
                         ) for n in columns
                     ]
                 )
-            ]
+            ],
+        className="six columns"
         ),
         # Sidebar
         html.Div(
@@ -160,9 +163,10 @@ app.layout = html.Div(
                             id='download-button',
                             className='button'),
                 html.Div(id='dummy',style={'display':'none'})
-            ]
+            ],
+        className="five columns"
         )
-    ],
+    ], className="twelve columns"
 )
 
 

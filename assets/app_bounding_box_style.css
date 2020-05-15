@@ -1,9 +1,8 @@
 /* -- style banner -- */
 
 #main {
-    overflow: hidden;
+    /* overflow: hidden; */
     display: inline-block;
-    background: lightgrey;
     border-radius: 5px;
 }
 
@@ -16,10 +15,12 @@
 }
 
 #logo {
-    display: block;
+    display: inline;
+    vertical-align: middle;
     margin: 10px;
     padding: 5px;
-    width: 500px;
+    width: 15%;
+    float: right;
 }
 
 #title {
@@ -34,7 +35,6 @@
 }
 
 #app-container {
-    width: 500px;
     margin: 10px;
     padding: 5px;
     border: 1.5px solid grey;
@@ -44,7 +44,6 @@
 }
 
 #sidebar {
-    width: 500px;
     margin: 10px;
     padding: 5px;
     float: left;
