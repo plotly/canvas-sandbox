@@ -54,6 +54,9 @@ columns = [
     "Y1"
 ]
 
+def time_passed(start=0):
+    return round(time.mktime(time.localtime()))-start
+
 
 def format_float(f):
     return '%.2f' % (f,)
@@ -121,6 +124,13 @@ app.layout = html.Div(
                     figure=fig,
                     config={'modeBarButtonsToAdd': ['drawrect', 'eraseshape']},
                 ),
+            ],
+        className="seven columns"
+        ),
+        # Sidebar
+        html.Div(
+            id="sidebar",
+            children=[
                 # Data table
                 dash_table.DataTable(
                     id='annotations-table',
@@ -130,17 +140,14 @@ app.layout = html.Div(
                             id=n
                         ) for n in columns
                     ]
-                )
-            ],
-        className="seven columns"
-        ),
-        # Sidebar
-        html.Div(
-            id="sidebar",
-            children=[
+                ),
                 dcc.Store(id='graph-copy', data=fig),
                 dcc.Store(id='annotations-store',
-                          data={filename: {'shapes': []} for filename in filelist}),
+                          data=dict(
+                            **{filename: {'shapes': []} for filename in filelist},
+                            **{'starttime': time_passed()}
+                          )
+                ),
                 dcc.Store(id='image_files', data={'files': filelist, 'current': 0}),
                 html.H6("Type of annotation"),
                 dcc.Dropdown(
@@ -169,7 +176,7 @@ app.layout = html.Div(
 )
 
 
-def store_shape_resize(store_data_for_file, fig_data):
+def store_shape_resize(store_data_for_file, fig_data, timestamp):
     """
     Extract the shape that was resized (its index) and store the resized
     coordinates.
@@ -182,7 +189,7 @@ def store_shape_resize(store_data_for_file, fig_data):
             shape_nb)][coord] = fig_data[key]
         # update timestamp
         store_data_for_file['shapes'][int(
-            shape_nb)]['timestamp'] = time.ctime()
+            shape_nb)]['timestamp'] = timestamp
     return store_data_for_file
 
 
@@ -206,6 +213,7 @@ def shape_data_remove_timestamp(shape):
      dash.dependencies.Input('image_files', 'data')],
     [dash.dependencies.State('annotations-store', 'data')])
 def update_graph_table_store(fig_data, annotation_type, image_files, store_data):
+    timestamp=time_passed(store_data['starttime'])
     return_value = None
     filename = image_files['files'][image_files['current']]
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
@@ -225,7 +233,7 @@ def update_graph_table_store(fig_data, annotation_type, image_files, store_data)
                 fig_data['shapes']))
             # add timestamps to the new shapes
             for s in new_shapes:
-                s['timestamp'] = time.ctime()
+                s['timestamp'] = timestamp
             # find the old shapes to preserve them (rather than overwrite their
             # timestamp with the shape lacking a timestamp in fig_data['shapes'])
             old_shapes = list(filter(
@@ -237,7 +245,9 @@ def update_graph_table_store(fig_data, annotation_type, image_files, store_data)
             # this means a shape was updated (e.g., by clicking and dragging its
             # vertices), so we just update the specific shape
             store_data[filename] = store_shape_resize(
-                store_data[filename], fig_data)
+                store_data[filename],
+                fig_data,
+                timestamp)
     return_value = (
         store_data,
         [shape_to_table_row(sh) for sh in store_data[filename]['shapes']]
