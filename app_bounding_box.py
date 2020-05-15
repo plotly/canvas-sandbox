@@ -110,7 +110,7 @@ app.layout = html.Div(
                     id="logo", src=app.get_asset_url("dash-logo-new.png"),
                     ),
             ],
-        className="eleven columns"
+        className="twelve columns"
         ),
         # Main body
         html.Div(
@@ -132,7 +132,7 @@ app.layout = html.Div(
                     ]
                 )
             ],
-        className="six columns"
+        className="seven columns"
         ),
         # Sidebar
         html.Div(
