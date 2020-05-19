@@ -2,11 +2,7 @@
 
 #main {
     display: inline-block;
-    background: lightgrey;
     border-radius: 5px;
-}
-
-#annotations-table {
 }
 
 .button {
@@ -18,10 +14,12 @@
 }
 
 #logo {
-    display: block;
+    display: inline;
+    vertical-align: middle;
     margin: 10px;
     padding: 5px;
-    width: 500px;
+    width: 15%;
+    float: right;
 }
 
 #title {
@@ -34,20 +32,28 @@
     width: 500px;
     background: white;
 }
-#table-container {}
+
+#table-container {
+    width: 100%;
+    display: table;
+    content: "";
+    clear: both;
+}
     
 #timestamp-table {
     width:20%;
     float:left;
+    font-size: small;
 }
 
 #annotations-table {
     width:80%;
     float:left;
+    margin: 0;
+    font-size: small;
 }
 
 #app-container {
-    width: 500px;
     margin: 10px;
     padding: 5px;
     border: 1.5px solid grey;
@@ -57,7 +63,6 @@
 }
 
 #sidebar {
-    width: 500px;
     margin: 10px;
     padding: 5px;
     float: left;
