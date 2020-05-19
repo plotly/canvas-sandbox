@@ -228,7 +228,8 @@ app.layout = html.Div(
                                     'options':[
                                         {'label': o, 'value': o}
                                         for o in annotation_types
-                                    ]
+                                    ],
+                                    'clearable': False
                                 }
                             }
                         )
