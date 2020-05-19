@@ -2,11 +2,12 @@
 
 #main {
     display: inline-block;
-    background: lightgrey;
     border-radius: 5px;
 }
 
 #annotations-table {
+    margin: 0;
+    font-size: small;
 }
 
 .button {
@@ -18,10 +19,12 @@
 }
 
 #logo {
-    display: block;
+    display: inline;
+    vertical-align: middle;
     margin: 10px;
     padding: 5px;
-    width: 500px;
+    width: 15%;
+    float: right;
 }
 
 #title {
@@ -47,7 +50,6 @@
 }
 
 #app-container {
-    width: 500px;
     margin: 10px;
     padding: 5px;
     border: 1.5px solid grey;
@@ -57,7 +59,6 @@
 }
 
 #sidebar {
-    width: 500px;
     margin: 10px;
     padding: 5px;
     float: left;

@@ -179,11 +179,12 @@ app.layout = html.Div(
         html.Div(
             id="banner",
             children=[
+                html.H1("Bounding Box Classification App", id="title"),
                 html.Img(
                     id="logo", src=app.get_asset_url("dash-logo-new.png")
                 ),
-                html.H2("Bounding Box Classification App", id="title"),
             ],
+        className="twelve columns"
         ),
         # Main body
         html.Div(
@@ -194,6 +195,13 @@ app.layout = html.Div(
                     figure=fig,
                     config={'modeBarButtonsToAdd': ['drawrect', 'eraseshape']},
                 ),
+            ],
+            className="seven columns"
+        ),
+        # Sidebar
+        html.Div(
+            id="sidebar",
+            children=[
                 html.Div(id='table-container',
                     children=[
                         # Timestamp table
@@ -225,13 +233,7 @@ app.layout = html.Div(
                             }
                         )
                     ]
-                )
-            ]
-        ),
-        # Sidebar
-        html.Div(
-            id="sidebar",
-            children=[
+                ),
                 dcc.Store(id='graph-copy', data=fig),
                 dcc.Store(id='annotations-store',
                           data=dict(
@@ -261,9 +263,11 @@ app.layout = html.Div(
                             id='download-button',
                             className='button'),
                 html.Div(id='dummy',style={'display':'none'})
-            ]
+            ],
+            className="five columns"
         )
     ],
+    className="twelve columns"
 )
 
 @app.callback(
