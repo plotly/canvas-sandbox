@@ -210,7 +210,8 @@ app.layout = html.Div(
                             columns=[{
                                 'name': 'Timestamp',
                                 'id': 'Timestamp'
-                            }]
+                            }],
+                            style_data={'height': 40}
                         ),
                         # Data table
                         dash_table.DataTable(
@@ -223,6 +224,7 @@ app.layout = html.Div(
                                 ) for n in columns
                             ],
                             editable=True,
+                            style_data={'height': 40},
                             dropdown={
                                 'Type': {
                                     'options':[
@@ -231,7 +233,13 @@ app.layout = html.Div(
                                     ],
                                     'clearable': False
                                 }
+                            },
+                            style_cell_conditional=[
+                            {
+                                'if': {'column_id': 'Type'},
+                                'textAlign': 'left'
                             }
+                        ]
                         )
                     ]
                 ),
