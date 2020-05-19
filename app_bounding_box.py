@@ -207,11 +207,40 @@ app.layout = html.Div(
                         # Timestamp table
                         dash_table.DataTable(
                             id='timestamp-table',
-                            columns=[{
+                            columns=[
+                                {
+                                'name': 'dummy',
+                                'id': 'dummy',
+                                'presentation': 'dropdown',
+                            },
+
+                                {
                                 'name': 'Timestamp',
                                 'id': 'Timestamp'
-                            }]
-                        ),
+                            },
+                            ],
+                            dropdown={
+                                'dummy': {
+                                    'options':[
+                                        {'label': o, 'value': o}
+                                        for o in ['a', 'b']
+                                    ],
+                                    'clearable': False
+                                }
+                            },
+                            editable=True,
+                            style_cell_conditional=[
+                            {
+                                'if': {'column_id': 'dummy'},
+                                'width': '10px'
+                            },
+                            ],
+                            style_cell={
+                                'overflow': 'hidden',
+                                'textOverflow': 'clip',
+                                'maxWidth': 0
+                                    }
+                                        ),
                         # Data table
                         dash_table.DataTable(
                             id='annotations-table',
@@ -229,7 +258,7 @@ app.layout = html.Div(
                                         {'label': o, 'value': o}
                                         for o in annotation_types
                                     ],
-                                    'clearable': False
+                                    'clearable': True
                                 }
                             }
                         )
@@ -378,7 +407,7 @@ def send_figure_to_graph(annotations_table_data,
                 pad = 4)
         })
         annotations_store[filename]['shapes']=shapes
-        return (fig,annotations_store,[{'Timestamp':s['timestamp']} for s in shapes])
+        return (fig,annotations_store,[{'Timestamp':s['timestamp'], 'dummy':'a'} for s in shapes])
     return dash.no_update
 
 # set the download url to the contents of the annotations-store (so they can be
