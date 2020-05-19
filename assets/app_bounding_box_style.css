@@ -5,11 +5,6 @@
     border-radius: 5px;
 }
 
-#annotations-table {
-    margin: 0;
-    font-size: small;
-}
-
 .button {
     background: lightgrey;
 }
@@ -37,16 +32,25 @@
     width: 500px;
     background: white;
 }
-#table-container {}
+
+#table-container {
+    width: 100%;
+    display: table;
+    content: "";
+    clear: both;
+}
     
 #timestamp-table {
     width:20%;
     float:left;
+    font-size: small;
 }
 
 #annotations-table {
     width:80%;
     float:left;
+    margin: 0;
+    font-size: small;
 }
 
 #app-container {

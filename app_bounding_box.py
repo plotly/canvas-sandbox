@@ -151,7 +151,7 @@ def shape_data_remove_timestamp(shape):
     return new_shape
 
 
-external_stylesheets = ['assets/app_bounding_box_style.css']
+external_stylesheets = ['assets/style.css','assets/app_bounding_box_style.css']
 app = dash.Dash(__name__,external_stylesheets=external_stylesheets)
 
 filelist = [app.get_asset_url('driving.jpg'),
