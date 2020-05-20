@@ -245,10 +245,10 @@ app.layout = html.Div(
                 ),
                 dcc.Store(id='graph-copy', data=fig),
                 dcc.Store(id='annotations-store',
-                          data=dict(
-                            **{filename: {'shapes': []} for filename in filelist},
-                            **{'starttime': time_passed()}
-                          )
+                      data=dict(
+                        **{filename: {'shapes': []} for filename in filelist},
+                        **{'starttime': time_passed()}
+                      )
                 ),
                 dcc.Store(id='image_files', data={'files': filelist, 'current': 0}),
                 html.H6("Type of annotation"),
