@@ -13,6 +13,8 @@ import re
 import uuid
 import time
 
+DEBUG=True
+
 NUM_ATYPES=15
 DEFAULT_FIG_MODE='layout'
 annotation_colormap=px.colors.qualitative.Light24
@@ -52,6 +54,10 @@ columns = [
     "X1",
     "Y1"
 ]
+
+def debug_print(*args):
+    if DEBUG:
+        print(*args)
 
 def coord_to_tab_column(coord):
     return coord.upper()
@@ -118,14 +124,19 @@ def shape_in(se):
     """ check if a shape is in list (done this way to use custom compare) """
     return lambda s: any(shape_cmp(s, s_) for s_ in se)
 
+def index_of_shape(shapes,shape):
+        for i,shapes_item in enumerate(shapes):
+            if shape_cmp(shapes_item,shape):
+                return i
+        raise ValueError # not found
 
 def annotations_table_shape_resize(annotations_table_data, fig_data):
     """
     Extract the shape that was resized (its index) and store the resized
     coordinates.
     """
-    print('fig_data',fig_data)
-    print('table_data',annotations_table_data)
+    debug_print('fig_data',fig_data)
+    debug_print('table_data',annotations_table_data)
     for key, val in fig_data.items():
         shape_nb, coord = key.split('.')
         # shape_nb is for example 'shapes[2].x0': this extracts the number
@@ -301,6 +312,8 @@ def modify_table_entries(add_shape_n_clicks,
                          annotation_type):
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if cbcontext == 'graph.relayoutData':
+        debug_print('graph_relayoutData:',graph_relayoutData)
+        debug_print('annotations_table_data before:',annotations_table_data)
         if 'shapes' in graph_relayoutData.keys():
             # this means all the shapes have been passed to this function via
             # graph_relayoutData, so we store them
@@ -316,6 +329,7 @@ def modify_table_entries(add_shape_n_clicks,
         if annotations_table_data is None:
             return dash.no_update
         else:
+            debug_print('annotations_table_data after:',annotations_table_data)
             return (annotations_table_data,image_files_data)
     if cbcontext == 'add-shape.n_clicks':
         if annotations_table_data is None:
@@ -336,7 +350,7 @@ def modify_table_entries(add_shape_n_clicks,
         # image changed, update annotations_table_data with new data
         annotations_table_data=[]
         filename=image_files_data['files'][image_files_data['current']]
-        print(annotations_store_data[filename])
+        debug_print(annotations_store_data[filename])
         for sh in annotations_store_data[filename]['shapes']:
             annotations_table_data.append(shape_to_table_row(sh))
         return (annotations_table_data,image_files_data)
@@ -360,18 +374,27 @@ def send_figure_to_graph(annotations_table_data,
         filename=image_files_data['files'][image_files_data['current']]
         # convert table rows to those understood by fig.update_layout
         fig_shapes=[table_row_to_shape(sh) for sh in annotations_table_data]
+        debug_print('fig_shapes:',fig_shapes)
+        debug_print("annotations_store[%s]['shapes']:"%(filename,),
+              annotations_store[filename]['shapes'])
         # find the shapes that are new
-        new_shapes = list(filter(
-            lambda s: not shape_in(annotations_store[filename]['shapes'])(s),
-            fig_shapes))
+        new_shapes_i=[]
+        old_shapes_i=[]
+        for i,sh in enumerate(fig_shapes):
+            if not shape_in(annotations_store[filename]['shapes'])(sh):
+                new_shapes_i.append(i)
+            else:
+                old_shapes_i.append(i)
         # add timestamps to the new shapes
-        for s in new_shapes:
-            s['timestamp'] = time_passed(annotations_store['starttime'])
-        # find the old shapes in order to look up their timestamps
-        old_shapes = list(filter(
-            shape_in(fig_shapes),
-            annotations_store[filename]['shapes']))
-        shapes=old_shapes+new_shapes
+        for i in new_shapes_i:
+            fig_shapes[i]['timestamp'] = time_passed(annotations_store['starttime'])
+        # find the old shapes and look up their timestamps
+        for i in old_shapes_i:
+            old_shape_i=index_of_shape(annotations_store[filename]['shapes'],fig_shapes[i])
+            fig_shapes[i]['timestamp']=\
+                annotations_store[filename]['shapes'][old_shape_i]['timestamp']
+        shapes=fig_shapes
+        debug_print('shapes:',shapes)
         fig = make_figure(filename, mode=DEFAULT_FIG_MODE)
         fig.update_layout({
             'shapes': [shape_data_remove_timestamp(sh) for sh in shapes],
@@ -421,4 +444,4 @@ function(download_button_n_clicks)
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=DEBUG)
