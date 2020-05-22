@@ -22,9 +22,9 @@ fig=plot_common.dummy_fig()
 
 mask1,mask2=[new_mask() for _ in range(2)]
 mask1[100:200,100:200,0]=150
-mask1[100:200,100:200,3]=255
-mask2[100:150,250:350,1]=200
-mask2[100:150,250:350,3]=255
+mask1[100:200,100:200,3]=128
+mask2[150:250,175:350,1]=200
+mask2[150:250,175:350,3]=128
 images=[plot_common.img_array_to_pil_image(im) for im in [mask1,mask2]]
 
 fig=plot_common.add_layout_images_to_fig(fig,images)

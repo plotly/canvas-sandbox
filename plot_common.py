@@ -48,7 +48,7 @@ def dummy_fig():
         zeroline=False)
     return fig
 
-def add_layout_images_to_fig(fig,images):
+def add_layout_images_to_fig(fig,images,update_ranges=True):
     """ images is a sequence of PIL Image objects """
     for im in images:
         width, height = im.size
@@ -66,6 +66,16 @@ def add_layout_images_to_fig(fig,images):
                 layer="below"
             )
         )
+    if update_ranges:
+       width,height=[max([im.size[i] for im in images]) for i in range(2)]
+       # TODO showgrid,showticklabels,zeroline should be passable to this
+       # function
+       fig.update_xaxes(showgrid=False, range=(0, width),
+       showticklabels=False,
+       zeroline=False)
+       fig.update_yaxes(showgrid=False, scaleanchor='x', range=(height, 0),
+       showticklabels=False,
+       zeroline=False)
     return fig
 
 def img_array_to_pil_image(ia):
