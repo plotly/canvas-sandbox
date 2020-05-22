@@ -78,8 +78,9 @@ app.layout=html.Div(
 
 app.clientside_callback(
 """
-function (label_class_value,image_selector_value,figure)
+function (label_class_value,image_selector_value,figure_)
 {
+    let figure = {...figure_};
     const colormap = %s;
     figure.layout.newshape.line.color = colormap[label_class_value];
     figure.layout.images[0].source = image_selector_value;
