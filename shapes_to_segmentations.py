@@ -73,7 +73,7 @@ def compute_segmentations(shapes,
         print('lab.shape',lab.shape)
         label_imgs.append(lab)
 
-    if write_debug_img:
+    if write_debug_images:
         # make image where labels are superimposed on image
         supimg=img.copy()
         for lab in label_imgs:

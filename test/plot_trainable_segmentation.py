@@ -25,7 +25,6 @@ import matplotlib.pyplot as plt
 from skimage import io, filters, feature, segmentation
 from skimage import img_as_float32
 from sklearn.ensemble import RandomForestClassifier
-from time import time
 
 
 def _features_sigma(img, sigma, intensity=True, edges=True, texture=True):

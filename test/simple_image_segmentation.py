@@ -9,6 +9,7 @@ import shape_utils
 import plot_common
 from PIL import Image
 import json
+from shapes_to_segmentations import compute_segmentations
 
 DEFAULT_LINE_WIDTH=5
 
@@ -95,11 +96,13 @@ app.layout=html.Div(
     ]
 )
 
-def compute_segementation(fig,
-                          image,
-                          mask_shapes):
-    masks=[shape_utils.shape_to_png(fig,shape) for shape in mask_shapes]
-
+def show_segementation(fig,
+                       image_path,
+                       mask_shapes):
+    """ adds an image showing segmentations to a figure's layout """
+    segimg=compute_segmentations(mask_shapes,img_path=image_path)[0]
+    segimgpng=plot_common.img_array_to_pil_image(segimg)
+    return plot_common.add_layout_images_to_fig(fig,[segimgpng])
 
 @app.callback(
     [Output('graph','figure'),
@@ -127,6 +130,8 @@ def annotation_react(
     fig=mf(stroke_color=class_to_color(label_class_value),
            stroke_width=stroke_width_value,
            shapes=masks_data['shapes'])
+    if 'Show segmentation' in show_segmentation_value:
+        fig=show_segementation(fig,DEFAULT_IMAGE_PATH,masks_data['shapes'])
     with open('/tmp/shapes.json','w') as fd:
         json.dump(masks_data['shapes'],fd)
     return (fig,masks_data,dash.no_update)
