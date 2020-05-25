@@ -5,6 +5,7 @@ import dash_core_components as dcc
 import utils
 import shape_utils
 import plot_common
+import json
 
 # specify __root__ as app name to force looking for assets/ folder in directory
 # where python was invoked from.
@@ -50,6 +51,8 @@ def show_line_data(graph_relayoutData):
         if ('shapes' in graph_relayoutData.keys()):
             for i,shape in enumerate(graph_relayoutData['shapes']):
                 r=shape_utils.shape_to_png(fig,shape,write_to='/tmp/%d.png'%(i,))
+                with open('/tmp/%d.json'%(i,),'w') as fd:
+                    json.dump(shape,fd)
             fig.update_layout({
                 'shapes': graph_relayoutData['shapes']
             })
