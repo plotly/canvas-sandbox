@@ -1,5 +1,3 @@
-# Just checking to see if the labels we will use to test the image segmentation
-# are matching etc.
 
 import PIL.Image
 import numpy as np
@@ -49,17 +47,18 @@ def grey_labels(img):
     img*=255//(maxc-minc+1)
     return img
 
-if __name__ == '__main__':
-
+def compute_segmentations(shapes,
+                          img_path='assets/segmentation_img.jpg',
+                          write_debug_images=False):
+                        
+                          
     # load original image
-    img=img_to_ubyte_array('assets/segmentation_img.jpg')
+    img=img_to_ubyte_array(img_path)
     blank_img=np.zeros_like(img)
     print('img.shape',img.shape)
 
     # load labels
     label_imgs=[]
-    with open('assets/segmentation_img_labels.json','r') as fd:
-        shapes=json.load(fd)
     for shape in shapes:
         lab=img_to_ubyte_array(
             io.BytesIO(
@@ -74,16 +73,17 @@ if __name__ == '__main__':
         print('lab.shape',lab.shape)
         label_imgs.append(lab)
 
-    # make image where labels are superimposed on image
-    supimg=img.copy()
-    for lab in label_imgs:
-        lab_=lab[:,:,:img.shape[2]]
-        labmsk=lab[:,:,3]!=0
-        supimg[labmsk]=lab_[labmsk]
-        blank_img[labmsk]=lab_[labmsk]
+    if write_debug_img:
+        # make image where labels are superimposed on image
+        supimg=img.copy()
+        for lab in label_imgs:
+            lab_=lab[:,:,:img.shape[2]]
+            labmsk=lab[:,:,3]!=0
+            supimg[labmsk]=lab_[labmsk]
+            blank_img[labmsk]=lab_[labmsk]
 
-    skimage.io.imsave('/tmp/overlay.tiff',supimg)
-    skimage.io.imsave('/tmp/labels_only.tiff',blank_img)
+        skimage.io.imsave('/tmp/overlay.tiff',supimg)
+        skimage.io.imsave('/tmp/labels_only.tiff',blank_img)
 
     shape_args=[{
         'width': img.shape[1],
@@ -93,9 +93,12 @@ if __name__ == '__main__':
     shape_layers=[(n+1) for n,_ in enumerate(shapes)]
     mask=shape_utils.shapes_to_mask(shape_args,shape_layers)
 
-    # do segmentation and plot it (export the image)
+    # do segmentation and return this
     seg,clf=trainable_segmentation(img, mask)
-    skimage.io.imsave('/tmp/segmentation.tiff',
-    label_to_colors(seg))
-    skimage.io.imsave('/tmp/mask.tiff',
-    label_to_colors(mask))
+    color_seg=label_to_colors(seg)
+    if write_debug_images:
+        skimage.io.imsave('/tmp/segmentation.tiff',
+        color_seg)
+    # color_seg is a 3d tensor representing a colored image whereas seg is a
+    # matrix whose entries represent the classes
+    return (color_seg,seg)

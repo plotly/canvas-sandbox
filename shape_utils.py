@@ -68,7 +68,7 @@ def shapes_to_mask(shape_args,shape_layers):
         images.append(PIL.Image.open(io.BytesIO(pngbytes)))
 
     mwidth,mheight=[max([im.size[i] for im in images]) for i in range(2)]
-    mask = np.zeros((mwidth,mheight), dtype=np.uint8)
+    mask = np.zeros((mheight,mwidth), dtype=np.uint8)
     if type(shape_layers) != type(list()):
         layer_numbers=[shape_layers for _ in shape_args]
     else:
@@ -78,7 +78,7 @@ def shapes_to_mask(shape_args,shape_layers):
         # layer 0 is reserved for no mask
         imary=skimage.util.img_as_ubyte(np.array(im))
         imary=np.sum(imary,axis=2)
-        imary.resize((mwidth,mheight))
+        imary.resize((mheight,mwidth))
         imarys.append(imary)
         mask[imary!=0]=layer_num
     return mask
