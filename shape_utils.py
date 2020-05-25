@@ -77,7 +77,7 @@ def shapes_to_mask(shape_args,shape_layers):
     for layer_num,im in zip(layer_numbers,images):
         # layer 0 is reserved for no mask
         imary=skimage.util.img_as_ubyte(np.array(im))
-        imary=np.sum(imary,axis=2).T
+        imary=np.sum(imary,axis=2)
         imary.resize((mwidth,mheight))
         imarys.append(imary)
         mask[imary!=0]=layer_num

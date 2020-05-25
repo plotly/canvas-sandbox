@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 from skimage import io, filters, feature, segmentation
 from skimage import img_as_float32
 from sklearn.ensemble import RandomForestClassifier
+from time import time
 
 
 def _features_sigma(img, sigma, intensity=True, edges=True, texture=True):
@@ -85,7 +86,7 @@ def trainable_segmentation(img, mask, multichannel=True,
     """
     print(img.shape)
     t1 = time()
-    features = compute_features(im, multichannel=multichannel,
+    features = compute_features(img, multichannel=multichannel,
                             intensity=intensity, edges=edges, texture=texture,
                             sigma_min=sigma_min, sigma_max=sigma_max)
     t2 = time()
