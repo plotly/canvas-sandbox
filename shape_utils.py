@@ -1,4 +1,8 @@
 from cairosvg import svg2png
+import skimage
+import PIL.Image
+import io
+import numpy as np
 
 def shape_to_svg_code(fig=None,shape=None,width=None,height=None):
     """
@@ -60,7 +64,7 @@ def shapes_to_mask(shape_args,shape_layers):
     """
     images=[]
     for sa in shape_args:
-        pngbytes=shape_utils.shape_to_png(**sa)
+        pngbytes=shape_to_png(**sa)
         images.append(PIL.Image.open(io.BytesIO(pngbytes)))
 
     mwidth,mheight=[max([im.size[i] for im in images]) for i in range(2)]
