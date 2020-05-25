@@ -1,1 +1,1 @@
-web: gunicorn app_bounding_box:server
+web: PYTHONPATH=.:test gunicorn simple_image_segmentation:server

@@ -8,10 +8,11 @@ import utils
 import shape_utils
 import plot_common
 from PIL import Image
+import json
 
 DEFAULT_LINE_WIDTH=5
 
-DEFAULT_IMAGE_PATH='assets/driving.jpg'
+DEFAULT_IMAGE_PATH='assets/segmentation_img.jpg'
 
 # the number of different classes for labels
 NUM_LABEL_CLASSES=15
@@ -65,6 +66,7 @@ app.layout=html.Div(
         # data is label_class: base64_encoded_png pairs where label_class is the
         # key
         dcc.Store(id='segmentation',data={}), 
+        html.H6('Label class'),
         # Dropdown for selecting the label class
         dcc.Dropdown(
             id='label-class',
@@ -72,6 +74,7 @@ app.layout=html.Div(
             value=DEFAULT_LABEL_CLASS,
             clearable=False,
         ),
+        html.H6('Stroke width'),
         # Slider for specifying stroke width
         dcc.Slider(
             id='stroke-width',
@@ -85,7 +88,7 @@ app.layout=html.Div(
             id='show-segmentation',
             options=[
                 {'label': 'Show segmentation', 'value': 'Show segmentation'}
-            }
+            ],
             value=[]
         ),
         html.Div(id='dummy')
@@ -124,7 +127,9 @@ def annotation_react(
     fig=mf(stroke_color=class_to_color(label_class_value),
            stroke_width=stroke_width_value,
            shapes=masks_data['shapes'])
-    return (fig,masks_data)
+    with open('/tmp/shapes.json','w') as fd:
+        json.dump(masks_data['shapes'],fd)
+    return (fig,masks_data,dash.no_update)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
