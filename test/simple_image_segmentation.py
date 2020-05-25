@@ -28,6 +28,7 @@ def color_to_class(c):
     return class_label_colormap.index(c)
 
 app = dash_utils.new_dash_app(__file__)
+server=app.server
 print('root_path:',app.server.root_path)
 print('assets_folder:',app.config['assets_folder'])
 
