@@ -51,12 +51,18 @@ def dummy_fig():
         zeroline=False)
     return fig
 
+def _pilim_if_path(im):
+    if type(im) == type(str()):
+        return PIL.Image.open(im)
+    return im
+
 def add_layout_images_to_fig(fig,images,update_ranges=True):
     """ images is a sequence of PIL Image objects """
     if len(images) <= 0:
         return fig
     for im in images:
-        width, height = im.size
+        # if image is a path to an image, load the image to get its size
+        width, height = _pilim_if_path(im).size
         # Add images
         fig.add_layout_image(
             dict(
@@ -72,7 +78,7 @@ def add_layout_images_to_fig(fig,images,update_ranges=True):
             )
         )
     if update_ranges:
-       width,height=[max([im.size[i] for im in images]) for i in range(2)]
+       width,height=[max([_pilim_if_path(im).size[i] for im in images]) for i in range(2)]
        # TODO showgrid,showticklabels,zeroline should be passable to this
        # function
        fig.update_xaxes(showgrid=False, range=(0, width),

@@ -32,10 +32,8 @@ def color_to_class(c):
 
 app = dash_utils.new_dash_app(__file__)
 server=app.server
-print('root_path:',app.server.root_path)
-print('assets_folder:',app.config['assets_folder'])
 
-def mf(images=[Image.open(DEFAULT_IMAGE_PATH)],
+def mf(images=[DEFAULT_IMAGE_PATH],
        stroke_color=class_to_color(DEFAULT_LABEL_CLASS),
        stroke_width=DEFAULT_LINE_WIDTH,
        shapes=[]):
@@ -53,7 +51,6 @@ def mf(images=[Image.open(DEFAULT_IMAGE_PATH)],
             t = 0,
             pad = 4)
     })
-    print('fig:',fig)
     return fig
 
 def shapes_to_key(shapes):
@@ -70,7 +67,6 @@ def store_shapes_seg_pair(d,key,seg):
     seg.save(bytes_to_encode,format='png')
     bytes_to_encode.seek(0)
     data=base64.b64encode(bytes_to_encode.read()).decode()
-    print('data:',data)
     d[key]=data
     return d
 
@@ -154,10 +150,9 @@ def annotation_react(
     masks_data,
     segmentation_data):
     cbcontext = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    print('graph_relayoutData',graph_relayoutData)
     if cbcontext == 'graph.relayoutData' and 'shapes' in graph_relayoutData.keys():
         masks_data['shapes']=graph_relayoutData['shapes']
-    images=[Image.open(DEFAULT_IMAGE_PATH)]
+    images=[DEFAULT_IMAGE_PATH]
     fig=mf(stroke_color=class_to_color(label_class_value),
            stroke_width=stroke_width_value,
            shapes=masks_data['shapes'])
@@ -186,6 +181,7 @@ def annotation_react(
         fig=plot_common.add_layout_images_to_fig(fig,images_to_draw)
     with open('/tmp/shapes.json','w') as fd:
         json.dump(masks_data['shapes'],fd)
+    print('len(segmentation_data.keys())',len(segmentation_data.keys()))
     return (fig,masks_data,segmentation_data)
 
 if __name__ == '__main__':
