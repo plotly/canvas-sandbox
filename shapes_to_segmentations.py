@@ -55,7 +55,6 @@ def compute_segmentations(shapes,
     # load original image
     img=img_to_ubyte_array(img_path)
     blank_img=np.zeros_like(img)
-    print('img.shape',img.shape)
 
     # load labels
     label_imgs=[]
@@ -70,7 +69,6 @@ def compute_segmentations(shapes,
                 )
             )
         )
-        print('lab.shape',lab.shape)
         label_imgs.append(lab)
 
     if write_debug_images:

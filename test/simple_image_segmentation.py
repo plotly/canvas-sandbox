@@ -56,10 +56,11 @@ def mf(images=[DEFAULT_IMAGE_PATH],
 def shapes_to_key(shapes):
     return json.dumps(shapes)
 
-def store_shapes_seg_pair(d,key,seg):
+def store_shapes_seg_pair(d,key,seg,remove_old=True):
     """
     Stores shapes and segmentation pair in dict d
     seg is a PIL.Image object
+    if remove_old True, deletes all the old keys and values.
     """
     # TODO alternatively, if given a numpy array, we could serialize its raw
     # representation
@@ -67,6 +68,8 @@ def store_shapes_seg_pair(d,key,seg):
     seg.save(bytes_to_encode,format='png')
     bytes_to_encode.seek(0)
     data=base64.b64encode(bytes_to_encode.read()).decode()
+    if remove_old:
+        return {key:data}
     d[key]=data
     return d
 
@@ -163,8 +166,12 @@ def annotation_react(
         # because this will give the dimensions of the image
         sh=shapes_to_key(masks_data['shapes'])
         if sh in segmentation_data.keys():
+            print('key found')
             segimgpng=look_up_seg(segmentation_data,sh)
         else:
+            print('key:',sh)
+            print('keys:',list(segmentation_data.keys()))
+            print('computing new segmentation')
             try:
                 segimgpng=show_segmentation(fig,DEFAULT_IMAGE_PATH,masks_data['shapes'])
                 segmentation_data=store_shapes_seg_pair(
