@@ -10,6 +10,9 @@ import plot_common
 from PIL import Image
 import json
 from shapes_to_segmentations import compute_segmentations
+import io
+import base64
+import PIL.Image
 
 DEFAULT_LINE_WIDTH=5
 
@@ -53,6 +56,31 @@ def mf(images=[Image.open(DEFAULT_IMAGE_PATH)],
     print('fig:',fig)
     return fig
 
+def shapes_to_key(shapes):
+    return json.dumps(shapes)
+
+def store_shapes_seg_pair(d,key,seg):
+    """
+    Stores shapes and segmentation pair in dict d
+    seg is a PIL.Image object
+    """
+    # TODO alternatively, if given a numpy array, we could serialize its raw
+    # representation
+    bytes_to_encode=io.BytesIO()
+    seg.save(bytes_to_encode,format='png')
+    bytes_to_encode.seek(0)
+    data=base64.b64encode(bytes_to_encode.read()).decode()
+    print('data:',data)
+    d[key]=data
+    return d
+
+def look_up_seg(d,key):
+    """ Returns a PIL.Image object """
+    data=d[key]
+    img_bytes=base64.b64decode(data)
+    img=PIL.Image.open(io.BytesIO(img_bytes))
+    return img
+
 app.layout=html.Div(
     id="app-container",
     children=[
@@ -64,9 +92,11 @@ app.layout=html.Div(
         # Store for user created masks
         # data is a list of dicts describing shapes
         dcc.Store(id='masks',data={'shapes':[]}),
-        # Store for storing most recently computed segmentation
-        # data is label_class: base64_encoded_png pairs where label_class is the
-        # key
+        # Store for storing segmentations from shapes
+        # the keys are hashes of shape lists and the data are pngdata
+        # representing the corresponding segmentation
+        # this is so we can download annotations and also not recompute
+        # needlessly old segmentations
         dcc.Store(id='segmentation',data={}), 
         html.H6('Label class'),
         # Dropdown for selecting the label class
@@ -97,13 +127,13 @@ app.layout=html.Div(
     ]
 )
 
-def show_segementation(fig,
+def show_segmentation(fig,
                        image_path,
                        mask_shapes):
     """ adds an image showing segmentations to a figure's layout """
     segimg=compute_segmentations(mask_shapes,img_path=image_path)[0]
     segimgpng=plot_common.img_array_to_pil_image(segimg)
-    return plot_common.add_layout_images_to_fig(fig,[segimgpng])
+    return segimgpng
 
 @app.callback(
     [Output('graph','figure'),
@@ -131,11 +161,32 @@ def annotation_react(
     fig=mf(stroke_color=class_to_color(label_class_value),
            stroke_width=stroke_width_value,
            shapes=masks_data['shapes'])
-    if 'Show segmentation' in show_segmentation_value:
-        fig=show_segementation(fig,DEFAULT_IMAGE_PATH,masks_data['shapes'])
+    if ('Show segmentation' in show_segmentation_value) and (len(masks_data['shapes'])>0):
+        # to store segmentation data in the store, we need to base64 encode the
+        # PIL.Image and hash the set of shapes to use this as the key
+        # to retrieve the segmentation data, we need to base64 decode to a PIL.Image
+        # because this will give the dimensions of the image
+        sh=shapes_to_key(masks_data['shapes'])
+        if sh in segmentation_data.keys():
+            segimgpng=look_up_seg(segmentation_data,sh)
+        else:
+            try:
+                segimgpng=show_segmentation(fig,DEFAULT_IMAGE_PATH,masks_data['shapes'])
+                segmentation_data=store_shapes_seg_pair(
+                    segmentation_data,
+                    sh,
+                    segimgpng
+                )
+            except ValueError:
+                # if segmentation fails, draw nothing
+                segimgpng=None
+        images_to_draw=[]
+        if segimgpng is not None:
+            images_to_draw=[segimgpng]
+        fig=plot_common.add_layout_images_to_fig(fig,images_to_draw)
     with open('/tmp/shapes.json','w') as fd:
         json.dump(masks_data['shapes'],fd)
-    return (fig,masks_data,dash.no_update)
+    return (fig,masks_data,segmentation_data)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

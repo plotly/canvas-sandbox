@@ -13,13 +13,16 @@ def path_to_img_ndarray(path):
         img_array=np.array(img)
         return skimage.util.img_as_float(img_array)
 
+def str_to_pil_img(s):
+    return PIL.Image.open(io.BytesIO(s))
+
 def str_to_img_ndarrary(s):
     """
     Returns image in ndarray.
     ndarray will have dimensions (width,height,number_of_color_channels)
     This format is compatible with skimage
     """
-    img=PIL.Image.open(io.BytesIO(s))
+    img=str_to_pil_img()
     img_array=np.array(img)
     return skimage.util.img_as_float(img_array)
 
@@ -50,6 +53,8 @@ def dummy_fig():
 
 def add_layout_images_to_fig(fig,images,update_ranges=True):
     """ images is a sequence of PIL Image objects """
+    if len(images) <= 0:
+        return fig
     for im in images:
         width, height = im.size
         # Add images
