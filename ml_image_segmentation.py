@@ -3,7 +3,6 @@ import dash
 from dash.dependencies import Input, Output, State, ClientsideFunction
 import dash_html_components as html
 import dash_core_components as dcc
-import dash_utils
 import utils
 import shape_utils
 import plot_common
@@ -14,11 +13,11 @@ import io
 import base64
 import PIL.Image
 
-DEFAULT_STROKE_WIDTH = 3 # gives line width of 2^3 = 8
+DEFAULT_STROKE_WIDTH = 3  # gives line width of 2^3 = 8
 
 DEFAULT_IMAGE_PATH = "assets/segmentation_img.jpg"
 
-SEG_FEATURE_TYPES=["intensity","edges","texture"]
+SEG_FEATURE_TYPES = ["intensity", "edges", "texture"]
 
 # the number of different classes for labels
 NUM_LABEL_CLASSES = 15
@@ -37,7 +36,7 @@ def color_to_class(c):
     return class_label_colormap.index(c)
 
 
-app = dash.Dash()#dash_utils.new_dash_app(__file__)
+app = dash.Dash()
 server = app.server
 
 
@@ -119,7 +118,9 @@ app.layout = html.Div(
         ),
         html.H6(id="stroke-width-display"),
         # Slider for specifying stroke width
-        dcc.Slider(id="stroke-width", min=0, max=6, step=0.1, value=DEFAULT_STROKE_WIDTH),
+        dcc.Slider(
+            id="stroke-width", min=0, max=6, step=0.1, value=DEFAULT_STROKE_WIDTH
+        ),
         # Indicate showing most recently computed segmentation
         dcc.Checklist(
             id="show-segmentation",
@@ -129,10 +130,8 @@ app.layout = html.Div(
         html.H6("Features"),
         dcc.Checklist(
             id="segmentation-features",
-            options=[
-                {"label": l.capitalize(), "value": l } for l in SEG_FEATURE_TYPES
-            ],
-            value=[]
+            options=[{"label": l.capitalize(), "value": l} for l in SEG_FEATURE_TYPES],
+            value=["intensity", "edges"],
         ),
         html.Div(id="dummy"),
     ],
@@ -142,11 +141,18 @@ app.layout = html.Div(
 def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
     """ adds an image showing segmentations to a figure's layout """
     # add 1 because classifier takes 0 to mean no mask
-    shape_layers=[color_to_class(shape['line']['color'])+1 for shape in mask_shapes]
+    shape_layers = [color_to_class(shape["line"]["color"]) + 1 for shape in mask_shapes]
     print(mask_shapes)
-    segimg = compute_segmentations(mask_shapes, img_path=image_path,
+    segimg = compute_segmentations(
+        mask_shapes,
+        img_path=image_path,
         segmenter_args=segmenter_args,
-        shape_layers=shape_layers)[0]
+        shape_layers=shape_layers,
+        label_to_colors_args={
+            "colormap": class_label_colormap,
+            "color_class_offset": -1,
+        },
+    )[0]
     segimgpng = plot_common.img_array_to_pil_image(segimg)
     return segimgpng
 
@@ -156,7 +162,7 @@ def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
         Output("graph", "figure"),
         Output("masks", "data"),
         Output("segmentation", "data"),
-        Output("stroke-width-display","children")
+        Output("stroke-width-display", "children"),
     ],
     [
         Input("graph", "relayoutData"),
@@ -180,7 +186,7 @@ def annotation_react(
     if cbcontext == "graph.relayoutData" and "shapes" in graph_relayoutData.keys():
         masks_data["shapes"] = graph_relayoutData["shapes"]
     images = [DEFAULT_IMAGE_PATH]
-    stroke_width=int(round(2**(stroke_width_value)))
+    stroke_width = int(round(2 ** (stroke_width_value)))
     fig = mf(
         stroke_color=class_to_color(label_class_value),
         stroke_width=stroke_width,
@@ -193,19 +199,21 @@ def annotation_react(
         # PIL.Image and hash the set of shapes to use this as the key
         # to retrieve the segmentation data, we need to base64 decode to a PIL.Image
         # because this will give the dimensions of the image
-        sh = shapes_to_key([masks_data["shapes"],segmentation_features_value])
+        sh = shapes_to_key([masks_data["shapes"], segmentation_features_value])
         if sh in segmentation_data.keys():
             print("key found")
             segimgpng = look_up_seg(segmentation_data, sh)
         else:
             print("computing new segmentation")
-            segimgpng=None
+            segimgpng = None
             try:
-                feature_opts={key: (key in segmentation_features_value) for key in SEG_FEATURE_TYPES}
+                feature_opts = {
+                    key: (key in segmentation_features_value)
+                    for key in SEG_FEATURE_TYPES
+                }
                 if len(segmentation_features_value) > 0:
                     segimgpng = show_segmentation(
-                        fig, DEFAULT_IMAGE_PATH, masks_data["shapes"],
-                        feature_opts
+                        fig, DEFAULT_IMAGE_PATH, masks_data["shapes"], feature_opts
                     )
                     segmentation_data = store_shapes_seg_pair(
                         segmentation_data, sh, segimgpng
@@ -217,7 +225,7 @@ def annotation_react(
         if segimgpng is not None:
             images_to_draw = [segimgpng]
         fig = plot_common.add_layout_images_to_fig(fig, images_to_draw)
-    return (fig, masks_data, segmentation_data, "Stroke width: %d"%(stroke_width,))
+    return (fig, masks_data, segmentation_data, "Stroke width: %d" % (stroke_width,))
 
 
 if __name__ == "__main__":

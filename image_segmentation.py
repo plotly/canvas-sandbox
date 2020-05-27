@@ -40,57 +40,101 @@ def _features_sigma(img, sigma, intensity=True, edges=True, texture=True):
     if edges:
         features.append(filters.sobel(img_blur))
     if texture:
-        H_elems = [np.gradient(np.gradient(img_blur)[ax0], axis=ax1)
-            for ax0, ax1 in combinations_with_replacement(range(img.ndim), 2)]
+        H_elems = [
+            np.gradient(np.gradient(img_blur)[ax0], axis=ax1)
+            for ax0, ax1 in combinations_with_replacement(range(img.ndim), 2)
+        ]
         eigvals = feature.hessian_matrix_eigvals(H_elems)
         for eigval_mat in eigvals:
             features.append(eigval_mat)
     return features
 
 
-def _compute_features_gray(img, intensity=True, edges=True, texture=True,
-                          sigma_min=0.5, sigma_max=16):
+def _compute_features_gray(
+    img, intensity=True, edges=True, texture=True, sigma_min=0.5, sigma_max=16
+):
     """Features for a single channel image. ``img`` can be 2d or 3d.
     """
     # computations are faster as float32
     img = img_as_float32(img)
-    sigmas = np.logspace(np.log2(sigma_min), np.log2(sigma_max),
-            num=int(np.log2(sigma_max) - np.log2(sigma_min) + 1), base=2, endpoint=True)
+    sigmas = np.logspace(
+        np.log2(sigma_min),
+        np.log2(sigma_max),
+        num=int(np.log2(sigma_max) - np.log2(sigma_min) + 1),
+        base=2,
+        endpoint=True,
+    )
     n_sigmas = len(sigmas)
-    all_results = [_features_sigma(img, sigma, intensity=intensity, edges=edges, texture=texture) for sigma in sigmas]
+    all_results = [
+        _features_sigma(img, sigma, intensity=intensity, edges=edges, texture=texture)
+        for sigma in sigmas
+    ]
     return list(itertools.chain.from_iterable(all_results))
 
 
-def compute_features(img, multichannel=True,
-                          intensity=True, edges=True, texture=True,
-                          sigma_min=0.5, sigma_max=16):
+def compute_features(
+    img,
+    multichannel=True,
+    intensity=True,
+    edges=True,
+    texture=True,
+    sigma_min=0.5,
+    sigma_max=16,
+):
     """Features for a single- or multi-channel image.
     """
     if img.ndim == 3 and multichannel:
-        all_results = (_compute_features_gray(
-                img[..., dim], intensity=intensity, edges=edges, texture=texture,
-                sigma_min=sigma_min, sigma_max=sigma_max) for dim in range(img.shape[-1]))
+        all_results = (
+            _compute_features_gray(
+                img[..., dim],
+                intensity=intensity,
+                edges=edges,
+                texture=texture,
+                sigma_min=sigma_min,
+                sigma_max=sigma_max,
+            )
+            for dim in range(img.shape[-1])
+        )
         features = list(itertools.chain.from_iterable(all_results))
     else:
         features = _compute_features_gray(
-            img[..., dim], intensity=intensity, edges=edges, texture=texture,
-            sigma_min=sigma_min, sigma_max=sigma_max)
+            img[..., dim],
+            intensity=intensity,
+            edges=edges,
+            texture=texture,
+            sigma_min=sigma_min,
+            sigma_max=sigma_max,
+        )
     return np.array(features)
 
 
-def trainable_segmentation(img, mask, multichannel=True,
-                           intensity=True, edges=True, texture=True,
-                           sigma_min=0.5, sigma_max=16, downsample=10):
+def trainable_segmentation(
+    img,
+    mask,
+    multichannel=True,
+    intensity=True,
+    edges=True,
+    texture=True,
+    sigma_min=0.5,
+    sigma_max=16,
+    downsample=10,
+):
     """
     Segmentation using labeled parts of the image and a random forest classifier.
     """
     t1 = time()
-    features = compute_features(img, multichannel=multichannel,
-                            intensity=intensity, edges=edges, texture=texture,
-                            sigma_min=sigma_min, sigma_max=sigma_max)
+    features = compute_features(
+        img,
+        multichannel=multichannel,
+        intensity=intensity,
+        edges=edges,
+        texture=texture,
+        sigma_min=sigma_min,
+        sigma_max=sigma_max,
+    )
     t2 = time()
     training_data = features[:, mask > 0].T
-    training_labels = mask[mask>0].ravel()
+    training_labels = mask[mask > 0].ravel()
     data = features[:, mask == 0].T
     t3 = time()
     clf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
@@ -105,5 +149,3 @@ def trainable_segmentation(img, mask, multichannel=True,
     print("\tfit", t4 - t3)
     print("\tpredict", t5 - t4)
     return result, clf
-
-
