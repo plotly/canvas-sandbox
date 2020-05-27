@@ -14,7 +14,7 @@ import io
 import base64
 import PIL.Image
 
-DEFAULT_LINE_WIDTH = 5
+DEFAULT_STROKE_WIDTH = 3 # gives line width of 2^3 = 8
 
 DEFAULT_IMAGE_PATH = "assets/segmentation_img.jpg"
 
@@ -42,7 +42,7 @@ server = app.server
 def mf(
     images=[DEFAULT_IMAGE_PATH],
     stroke_color=class_to_color(DEFAULT_LABEL_CLASS),
-    stroke_width=DEFAULT_LINE_WIDTH,
+    stroke_width=DEFAULT_STROKE_WIDTH,
     shapes=[],
 ):
     fig = plot_common.dummy_fig()
@@ -115,9 +115,9 @@ app.layout = html.Div(
             value=DEFAULT_LABEL_CLASS,
             clearable=False,
         ),
-        html.H6("Stroke width"),
+        html.H6(id="stroke-width-display"),
         # Slider for specifying stroke width
-        dcc.Slider(id="stroke-width", min=1, max=10, step=1, value=1),
+        dcc.Slider(id="stroke-width", min=0, max=6, step=0.1, value=DEFAULT_STROKE_WIDTH),
         # Indicate showing most recently computed segmentation
         dcc.Checklist(
             id="show-segmentation",
@@ -141,6 +141,7 @@ def show_segmentation(fig, image_path, mask_shapes):
         Output("graph", "figure"),
         Output("masks", "data"),
         Output("segmentation", "data"),
+        Output("stroke-width-display","children")
     ],
     [
         Input("graph", "relayoutData"),
@@ -162,9 +163,10 @@ def annotation_react(
     if cbcontext == "graph.relayoutData" and "shapes" in graph_relayoutData.keys():
         masks_data["shapes"] = graph_relayoutData["shapes"]
     images = [DEFAULT_IMAGE_PATH]
+    stroke_width=int(round(2**(stroke_width_value)))
     fig = mf(
         stroke_color=class_to_color(label_class_value),
-        stroke_width=stroke_width_value,
+        stroke_width=stroke_width,
         shapes=masks_data["shapes"],
     )
     if ("Show segmentation" in show_segmentation_value) and (
@@ -194,7 +196,7 @@ def annotation_react(
         if segimgpng is not None:
             images_to_draw = [segimgpng]
         fig = plot_common.add_layout_images_to_fig(fig, images_to_draw)
-    return (fig, masks_data, segmentation_data)
+    return (fig, masks_data, segmentation_data, "Stroke width: %d"%(stroke_width,))
 
 
 if __name__ == "__main__":
