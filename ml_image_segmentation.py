@@ -37,7 +37,7 @@ def color_to_class(c):
     return class_label_colormap.index(c)
 
 
-app = dash_utils.new_dash_app(__file__)
+app = dash.Dash()#dash_utils.new_dash_app(__file__)
 server = app.server
 
 
