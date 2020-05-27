@@ -18,6 +18,8 @@ DEFAULT_STROKE_WIDTH = 3 # gives line width of 2^3 = 8
 
 DEFAULT_IMAGE_PATH = "assets/segmentation_img.jpg"
 
+SEG_FEATURE_TYPES=["intensity","edges","texture"]
+
 # the number of different classes for labels
 NUM_LABEL_CLASSES = 15
 DEFAULT_LABEL_CLASS = 0
@@ -124,14 +126,27 @@ app.layout = html.Div(
             options=[{"label": "Show segmentation", "value": "Show segmentation"}],
             value=[],
         ),
+        html.H6("Features"),
+        dcc.Checklist(
+            id="segmentation-features",
+            options=[
+                {"label": l.capitalize(), "value": l } for l in SEG_FEATURE_TYPES
+            ],
+            value=[]
+        ),
         html.Div(id="dummy"),
     ],
 )
 
 
-def show_segmentation(fig, image_path, mask_shapes):
+def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
     """ adds an image showing segmentations to a figure's layout """
-    segimg = compute_segmentations(mask_shapes, img_path=image_path)[0]
+    # add 1 because classifier takes 0 to mean no mask
+    shape_layers=[color_to_class(shape['line']['color'])+1 for shape in mask_shapes]
+    print(mask_shapes)
+    segimg = compute_segmentations(mask_shapes, img_path=image_path,
+        segmenter_args=segmenter_args,
+        shape_layers=shape_layers)[0]
     segimgpng = plot_common.img_array_to_pil_image(segimg)
     return segimgpng
 
@@ -148,6 +163,7 @@ def show_segmentation(fig, image_path, mask_shapes):
         Input("label-class", "value"),
         Input("stroke-width", "value"),
         Input("show-segmentation", "value"),
+        Input("segmentation-features", "value"),
     ],
     [State("masks", "data"), State("segmentation", "data")],
 )
@@ -156,6 +172,7 @@ def annotation_react(
     label_class_value,
     stroke_width_value,
     show_segmentation_value,
+    segmentation_features_value,
     masks_data,
     segmentation_data,
 ):
@@ -176,22 +193,26 @@ def annotation_react(
         # PIL.Image and hash the set of shapes to use this as the key
         # to retrieve the segmentation data, we need to base64 decode to a PIL.Image
         # because this will give the dimensions of the image
-        sh = shapes_to_key(masks_data["shapes"])
+        sh = shapes_to_key([masks_data["shapes"],segmentation_features_value])
         if sh in segmentation_data.keys():
             print("key found")
             segimgpng = look_up_seg(segmentation_data, sh)
         else:
             print("computing new segmentation")
+            segimgpng=None
             try:
-                segimgpng = show_segmentation(
-                    fig, DEFAULT_IMAGE_PATH, masks_data["shapes"]
-                )
-                segmentation_data = store_shapes_seg_pair(
-                    segmentation_data, sh, segimgpng
-                )
+                feature_opts={key: (key in segmentation_features_value) for key in SEG_FEATURE_TYPES}
+                if len(segmentation_features_value) > 0:
+                    segimgpng = show_segmentation(
+                        fig, DEFAULT_IMAGE_PATH, masks_data["shapes"],
+                        feature_opts
+                    )
+                    segmentation_data = store_shapes_seg_pair(
+                        segmentation_data, sh, segimgpng
+                    )
             except ValueError:
                 # if segmentation fails, draw nothing
-                segimgpng = None
+                pass
         images_to_draw = []
         if segimgpng is not None:
             images_to_draw = [segimgpng]

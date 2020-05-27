@@ -51,7 +51,10 @@ def grey_labels(img):
     return img
 
 
-def compute_segmentations(shapes, img_path="assets/segmentation_img.jpg"):
+def compute_segmentations(shapes,
+                          img_path="assets/segmentation_img.jpg",
+                          segmenter_args={},
+                          shape_layers=None):
 
     # load original image
     img = img_to_ubyte_array(img_path)
@@ -73,11 +76,12 @@ def compute_segmentations(shapes, img_path="assets/segmentation_img.jpg"):
         {"width": img.shape[1], "height": img.shape[0], "shape": shape}
         for shape in shapes
     ]
-    shape_layers = [(n + 1) for n, _ in enumerate(shapes)]
+    if (shape_layers is None) or (len(shape_layers) != len(shapes)):
+        shape_layers = [(n + 1) for n, _ in enumerate(shapes)]
     mask = shape_utils.shapes_to_mask(shape_args, shape_layers)
 
     # do segmentation and return this
-    seg, clf = trainable_segmentation(img, mask)
+    seg, clf = trainable_segmentation(img, mask, **segmenter_args)
     color_seg = label_to_colors(seg)
     # color_seg is a 3d tensor representing a colored image whereas seg is a
     # matrix whose entries represent the classes
