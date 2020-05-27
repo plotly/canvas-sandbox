@@ -84,7 +84,6 @@ def trainable_segmentation(img, mask, multichannel=True,
     """
     Segmentation using labeled parts of the image and a random forest classifier.
     """
-    print(img.shape)
     t1 = time()
     features = compute_features(img, multichannel=multichannel,
                             intensity=intensity, edges=edges, texture=texture,
@@ -101,6 +100,10 @@ def trainable_segmentation(img, mask, multichannel=True,
     t5 = time()
     result = np.copy(mask)
     result[mask == 0] = labels
+    print("trainable_segmentation timings:")
+    print("\tcompute features", t2 - t1)
+    print("\tfit", t4 - t3)
+    print("\tpredict", t5 - t4)
     return result, clf
 
 

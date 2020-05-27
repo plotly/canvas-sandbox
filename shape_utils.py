@@ -4,24 +4,25 @@ import PIL.Image
 import io
 import numpy as np
 
-def shape_to_svg_code(fig=None,shape=None,width=None,height=None):
+
+def shape_to_svg_code(fig=None, shape=None, width=None, height=None):
     """
     fig is the figure which shape resides in (to get width and height) and shape
     is one of the shapes the figure contains.
     """
-    assert(shape is not None)
+    assert shape is not None
     if fig is not None:
         # get width and height
-        wrange=next(fig.select_xaxes())['range']
-        hrange=next(fig.select_yaxes())['range']
-        width,height=[max(r)-min(r) for r in [wrange,hrange]]
-    assert((width is not None) and (height is not None))
-    fmt_dict=dict(
+        wrange = next(fig.select_xaxes())["range"]
+        hrange = next(fig.select_yaxes())["range"]
+        width, height = [max(r) - min(r) for r in [wrange, hrange]]
+    assert (width is not None) and (height is not None)
+    fmt_dict = dict(
         width=width,
         height=height,
-        stroke_color=shape['line']['color'],
-        stroke_width=shape['line']['width'],
-        path=shape['path']
+        stroke_color=shape["line"]["color"],
+        stroke_width=shape["line"]["width"],
+        path=shape["path"],
     )
     return """
 <svg
@@ -36,18 +37,22 @@ def shape_to_svg_code(fig=None,shape=None,width=None,height=None):
     fill-opacity="0"
 />
 </svg>
-""".format(**fmt_dict)
+""".format(
+        **fmt_dict
+    )
 
-def shape_to_png(fig=None,shape=None,width=None,height=None,write_to=None):
+
+def shape_to_png(fig=None, shape=None, width=None, height=None, write_to=None):
     """
     Like svg2png, if write_to is None, returns a bytestring. If it is a path
     to a file it writes to this file and returns None.
     """
-    svg_code=shape_to_svg_code(fig=fig,shape=shape,width=width,height=height)
-    r=svg2png(bytestring=svg_code,write_to=write_to)
+    svg_code = shape_to_svg_code(fig=fig, shape=shape, width=width, height=height)
+    r = svg2png(bytestring=svg_code, write_to=write_to)
     return r
 
-def shapes_to_mask(shape_args,shape_layers):
+
+def shapes_to_mask(shape_args, shape_layers):
     """
     Returns numpy array (type uint8) with number of rows equal to maximum height
     of all shapes's bounding boxes and number of columns equal to their number
@@ -62,25 +67,23 @@ def shapes_to_mask(shape_args,shape_layers):
     integer in [0...255] specifying the layer number. Note that the convention
     is that 0 means no mask, so generally the layer numbers will be non-zero.
     """
-    images=[]
+    images = []
     for sa in shape_args:
-        pngbytes=shape_to_png(**sa)
+        pngbytes = shape_to_png(**sa)
         images.append(PIL.Image.open(io.BytesIO(pngbytes)))
 
-    mwidth,mheight=[max([im.size[i] for im in images]) for i in range(2)]
-    mask = np.zeros((mheight,mwidth), dtype=np.uint8)
+    mwidth, mheight = [max([im.size[i] for im in images]) for i in range(2)]
+    mask = np.zeros((mheight, mwidth), dtype=np.uint8)
     if type(shape_layers) != type(list()):
-        layer_numbers=[shape_layers for _ in shape_args]
+        layer_numbers = [shape_layers for _ in shape_args]
     else:
         layer_numbers = shape_layers
-    imarys=[]
-    for layer_num,im in zip(layer_numbers,images):
+    imarys = []
+    for layer_num, im in zip(layer_numbers, images):
         # layer 0 is reserved for no mask
-        imary=skimage.util.img_as_ubyte(np.array(im))
-        imary=np.sum(imary,axis=2)
-        imary.resize((mheight,mwidth))
+        imary = skimage.util.img_as_ubyte(np.array(im))
+        imary = np.sum(imary, axis=2)
+        imary.resize((mheight, mwidth))
         imarys.append(imary)
-        mask[imary!=0]=layer_num
+        mask[imary != 0] = layer_num
     return mask
-    
-

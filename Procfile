@@ -1,1 +1,1 @@
-web: gunicorn --pythonpath '.,test' simple_image_segmentation:server
+web: gunicorn --pythonpath '.' ml_image_segmentation.py:server
