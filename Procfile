@@ -1,1 +1,1 @@
-web: gunicorn app_bounding_box:server
+web: gunicorn ml_image_segmentation:server
