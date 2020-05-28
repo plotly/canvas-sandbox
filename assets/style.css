@@ -1,3 +1,4 @@
+/* make the graph still visible while the loading spinner is displayed */
 *[data-dash-is-loading="true"]{
     visibility: visible;
 }

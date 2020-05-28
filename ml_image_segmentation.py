@@ -94,16 +94,22 @@ app.layout = html.Div(
     id="app-container",
     children=[
         dcc.Loading(
-            id='segmentations-loading',
-            type='circle',
+            id="segmentations-loading",
+            type="circle",
             children=[
                 # Graph
                 dcc.Graph(
                     id="graph",
                     figure=mf(),
-                    config={"modeBarButtonsToAdd": ["drawrect", "drawopenpath", "eraseshape"]},
+                    config={
+                        "modeBarButtonsToAdd": [
+                            "drawrect",
+                            "drawopenpath",
+                            "eraseshape",
+                        ]
+                    },
                 ),
-            ]
+            ],
         ),
         # Store for user created masks
         # data is a list of dicts describing shapes
@@ -115,12 +121,17 @@ app.layout = html.Div(
         # needlessly old segmentations
         dcc.Store(id="segmentation", data={}),
         html.H6("Label class"),
-        # Dropdown for selecting the label class
-        dcc.Dropdown(
-            id="label-class",
-            options=[{"label": t, "value": t} for t in class_labels],
-            value=DEFAULT_LABEL_CLASS,
-            clearable=False,
+        # Label class chosen with buttons
+        html.Div(
+            id="label-class-buttons",
+            children=[
+                html.Button(
+                    "%2d" % (n,),
+                    id={"type": "label-class-button", "index": n},
+                    style={"background-color": class_to_color(c)},
+                )
+                for n, c in enumerate(class_labels)
+            ],
         ),
         html.H6(id="stroke-width-display"),
         # Slider for specifying stroke width
@@ -141,11 +152,7 @@ app.layout = html.Div(
         ),
         html.H6("Blurring parameter"),
         dcc.RangeSlider(
-            id='sigma-range-slider',
-            min=0.01,
-            max=20,
-            step=0.01,
-            value=[0.5,16]
+            id="sigma-range-slider", min=0.01, max=20, step=0.01, value=[0.5, 16]
         ),
         html.Div(id="dummy"),
     ],
@@ -180,17 +187,19 @@ def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
     ],
     [
         Input("graph", "relayoutData"),
-        Input("label-class", "value"),
+        Input(
+            {"type": "label-class-button", "index": dash.dependencies.ALL}, "n_clicks"
+        ),
         Input("stroke-width", "value"),
         Input("show-segmentation", "value"),
         Input("segmentation-features", "value"),
-        Input('sigma-range-slider','value'),
+        Input("sigma-range-slider", "value"),
     ],
     [State("masks", "data"), State("segmentation", "data")],
 )
 def annotation_react(
     graph_relayoutData,
-    label_class_value,
+    any_label_class_button_value,
     stroke_width_value,
     show_segmentation_value,
     segmentation_features_value,
@@ -206,6 +215,15 @@ def annotation_react(
             return dash.no_update
     images = [DEFAULT_IMAGE_PATH]
     stroke_width = int(round(2 ** (stroke_width_value)))
+    # find label class value by finding button with the greatest n_clicks
+    print("any_label_class_button_value", any_label_class_button_value)
+    if any_label_class_button_value is None:
+        label_class_value = DEFAULT_LABEL_CLASS
+    else:
+        label_class_value = max(
+            enumerate(any_label_class_button_value),
+            key=lambda t: 0 if t[1] is None else t[1],
+        )[0]
     fig = mf(
         stroke_color=class_to_color(label_class_value),
         stroke_width=stroke_width,
@@ -218,7 +236,13 @@ def annotation_react(
         # PIL.Image and hash the set of shapes to use this as the key
         # to retrieve the segmentation data, we need to base64 decode to a PIL.Image
         # because this will give the dimensions of the image
-        sh = shapes_to_key([masks_data["shapes"], segmentation_features_value,sigma_range_slider_value])
+        sh = shapes_to_key(
+            [
+                masks_data["shapes"],
+                segmentation_features_value,
+                sigma_range_slider_value,
+            ]
+        )
         if sh in segmentation_data.keys():
             print("key found")
             segimgpng = look_up_seg(segmentation_data, sh)
@@ -230,9 +254,9 @@ def annotation_react(
                     key: (key in segmentation_features_value)
                     for key in SEG_FEATURE_TYPES
                 }
-                print('sigma_range_slider_value',sigma_range_slider_value)
-                feature_opts['sigma_min'] = sigma_range_slider_value[0]
-                feature_opts['sigma_max'] = sigma_range_slider_value[1]
+                print("sigma_range_slider_value", sigma_range_slider_value)
+                feature_opts["sigma_min"] = sigma_range_slider_value[0]
+                feature_opts["sigma_max"] = sigma_range_slider_value[1]
                 if len(segmentation_features_value) > 0:
                     segimgpng = show_segmentation(
                         fig, DEFAULT_IMAGE_PATH, masks_data["shapes"], feature_opts
