@@ -95,7 +95,7 @@ app.layout = html.Div(
     children=[
         dcc.Loading(
             id='segmentations-loading',
-            type='default',
+            type='circle',
             children=[
                 # Graph
                 dcc.Graph(
@@ -139,6 +139,14 @@ app.layout = html.Div(
             options=[{"label": l.capitalize(), "value": l} for l in SEG_FEATURE_TYPES],
             value=["intensity", "edges"],
         ),
+        html.H6("Blurring parameter"),
+        dcc.RangeSlider(
+            id='sigma-range-slider',
+            min=0.01,
+            max=20,
+            step=0.01,
+            value=[0.5,16]
+        ),
         html.Div(id="dummy"),
     ],
 )
@@ -176,6 +184,7 @@ def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
         Input("stroke-width", "value"),
         Input("show-segmentation", "value"),
         Input("segmentation-features", "value"),
+        Input('sigma-range-slider','value'),
     ],
     [State("masks", "data"), State("segmentation", "data")],
 )
@@ -185,6 +194,7 @@ def annotation_react(
     stroke_width_value,
     show_segmentation_value,
     segmentation_features_value,
+    sigma_range_slider_value,
     masks_data,
     segmentation_data,
 ):
@@ -208,7 +218,7 @@ def annotation_react(
         # PIL.Image and hash the set of shapes to use this as the key
         # to retrieve the segmentation data, we need to base64 decode to a PIL.Image
         # because this will give the dimensions of the image
-        sh = shapes_to_key([masks_data["shapes"], segmentation_features_value])
+        sh = shapes_to_key([masks_data["shapes"], segmentation_features_value,sigma_range_slider_value])
         if sh in segmentation_data.keys():
             print("key found")
             segimgpng = look_up_seg(segmentation_data, sh)
@@ -220,6 +230,9 @@ def annotation_react(
                     key: (key in segmentation_features_value)
                     for key in SEG_FEATURE_TYPES
                 }
+                print('sigma_range_slider_value',sigma_range_slider_value)
+                feature_opts['sigma_min'] = sigma_range_slider_value[0]
+                feature_opts['sigma_max'] = sigma_range_slider_value[1]
                 if len(segmentation_features_value) > 0:
                     segimgpng = show_segmentation(
                         fig, DEFAULT_IMAGE_PATH, masks_data["shapes"], feature_opts
