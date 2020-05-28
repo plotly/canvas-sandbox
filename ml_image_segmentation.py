@@ -183,8 +183,11 @@ def annotation_react(
     segmentation_data,
 ):
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
-    if cbcontext == "graph.relayoutData" and "shapes" in graph_relayoutData.keys():
-        masks_data["shapes"] = graph_relayoutData["shapes"]
+    if cbcontext == "graph.relayoutData":
+        if "shapes" in graph_relayoutData.keys():
+            masks_data["shapes"] = graph_relayoutData["shapes"]
+        else:
+            return dash.no_update
     images = [DEFAULT_IMAGE_PATH]
     stroke_width = int(round(2 ** (stroke_width_value)))
     fig = mf(
