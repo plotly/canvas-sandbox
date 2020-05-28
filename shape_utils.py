@@ -5,18 +5,19 @@ import io
 import numpy as np
 
 
-def shape_to_svg_code(fig=None, shape=None, width=None, height=None):
+def shape_to_svg_code(shape, fig=None, width=None, height=None):
     """
     fig is the figure which shape resides in (to get width and height) and shape
     is one of the shapes the figure contains.
     """
-    assert shape is not None
     if fig is not None:
         # get width and height
         wrange = next(fig.select_xaxes())["range"]
         hrange = next(fig.select_yaxes())["range"]
         width, height = [max(r) - min(r) for r in [wrange, hrange]]
-    assert (width is not None) and (height is not None)
+    else:
+        if width is None or height is None:
+            raise ValueError("If fig is None, you must specify width and height")
     fmt_dict = dict(
         width=width,
         height=height,
