@@ -36,7 +36,7 @@ def color_to_class(c):
     return class_label_colormap.index(c)
 
 
-app = dash.Dash()
+app = dash.Dash(__name__)
 server = app.server
 
 
