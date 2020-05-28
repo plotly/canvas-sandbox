@@ -93,11 +93,17 @@ def look_up_seg(d, key):
 app.layout = html.Div(
     id="app-container",
     children=[
-        # Graph
-        dcc.Graph(
-            id="graph",
-            figure=mf(),
-            config={"modeBarButtonsToAdd": ["drawrect", "drawopenpath", "eraseshape"]},
+        dcc.Loading(
+            id='segmentations-loading',
+            type='default',
+            children=[
+                # Graph
+                dcc.Graph(
+                    id="graph",
+                    figure=mf(),
+                    config={"modeBarButtonsToAdd": ["drawrect", "drawopenpath", "eraseshape"]},
+                ),
+            ]
         ),
         # Store for user created masks
         # data is a list of dicts describing shapes
