@@ -1,6 +1,6 @@
 import plotly.express as px
 import dash
-from dash.dependencies import Input, Output, State, ClientsideFunction
+from dash.dependencies import Input, Output, State
 import dash_html_components as html
 import dash_core_components as dcc
 import plot_common
@@ -9,11 +9,8 @@ from shapes_to_segmentations import compute_segmentations
 import io
 import base64
 import PIL.Image
-import pdb
+import pickle
 
-# TESTING
-import use_loaded_img_classifier
- 
 DEFAULT_STROKE_WIDTH = 3  # gives line width of 2^3 = 8
 
 DEFAULT_IMAGE_PATH = "assets/segmentation_img.jpg"
@@ -155,38 +152,52 @@ app.layout = html.Div(
         dcc.RangeSlider(
             id="sigma-range-slider", min=0.01, max=20, step=0.01, value=[0.5, 16]
         ),
-        html.Div(id="dummy"),
+        dcc.Store(id="classifier-store", data={}),
+        # We use this pattern because we want to be able to download the
+        # annotations by clicking on a button
+        html.A(
+            id="download",
+            download="classifier.json",
+            # make invisble, we just want it to click on it
+            style={"display": "none"},
+        ),
+        html.Button("Download classifier", id="download-button"),
+        html.Div(id="dummy", style={"display": "none"}),
     ],
 )
 
 
-def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
+def save_img_classifier(clf, segmenter_args, label_to_colors_args):
+    clfbytes = io.BytesIO()
+    pickle.dump(clf, clfbytes)
+    clfb64 = base64.b64encode(clfbytes.getvalue()).decode()
+    return {
+        "classifier": clfb64,
+        "segmenter_args": segmenter_args,
+        "label_to_colors_args": label_to_colors_args,
+    }
+
+
+def show_segmentation(image_path, mask_shapes, segmenter_args):
     """ adds an image showing segmentations to a figure's layout """
     # add 1 because classifier takes 0 to mean no mask
     shape_layers = [color_to_class(shape["line"]["color"]) + 1 for shape in mask_shapes]
     print(mask_shapes)
-    label_to_colors_args={
+    label_to_colors_args = {
         "colormap": class_label_colormap,
         "color_class_offset": -1,
     }
-    segimg,_,clf = compute_segmentations(
+    segimg, _, clf = compute_segmentations(
         mask_shapes,
         img_path=image_path,
         segmenter_args=segmenter_args,
         shape_layers=shape_layers,
-        label_to_colors_args=label_to_colors_args
+        label_to_colors_args=label_to_colors_args,
     )
-    # TESTING>
-    # store the classifier
-    use_loaded_img_classifier.save_img_classifier(clf,segmenter_args,label_to_colors_args)
-    # use the classifier
-    use_loaded_img_classifier.use_img_classifier()
-    #use_loaded_img_classifier.use_img_classifier_in_mem(clf,
-    #                                                    segmenter_args,
-    #                                                    label_to_colors_args)
-    # <TESTING
+    # get the classifier that we can later store in the Store
+    classifier = save_img_classifier(clf, segmenter_args, label_to_colors_args)
     segimgpng = plot_common.img_array_to_pil_image(segimg)
-    return segimgpng
+    return (segimgpng, classifier)
 
 
 @app.callback(
@@ -195,19 +206,24 @@ def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
         Output("masks", "data"),
         Output("segmentation", "data"),
         Output("stroke-width-display", "children"),
+        Output("classifier-store", "data"),
     ],
     [
         Input("graph", "relayoutData"),
         Input(
             {"type": "label-class-button", "index": dash.dependencies.ALL},
-             "n_clicks_timestamp"
+            "n_clicks_timestamp",
         ),
         Input("stroke-width", "value"),
         Input("show-segmentation", "value"),
         Input("segmentation-features", "value"),
         Input("sigma-range-slider", "value"),
     ],
-    [State("masks", "data"), State("segmentation", "data")],
+    [
+        State("masks", "data"),
+        State("segmentation", "data"),
+        State("classifier-store", "data"),
+    ],
 )
 def annotation_react(
     graph_relayoutData,
@@ -218,6 +234,7 @@ def annotation_react(
     sigma_range_slider_value,
     masks_data,
     segmentation_data,
+    classifier_store_data,
 ):
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
     if cbcontext == "graph.relayoutData":
@@ -269,8 +286,8 @@ def annotation_react(
                 feature_opts["sigma_min"] = sigma_range_slider_value[0]
                 feature_opts["sigma_max"] = sigma_range_slider_value[1]
                 if len(segmentation_features_value) > 0:
-                    segimgpng = show_segmentation(
-                        fig, DEFAULT_IMAGE_PATH, masks_data["shapes"], feature_opts
+                    segimgpng, classifier_store_data = show_segmentation(
+                        DEFAULT_IMAGE_PATH, masks_data["shapes"], feature_opts
                     )
                     segmentation_data = store_shapes_seg_pair(
                         segmentation_data, sh, segimgpng
@@ -282,7 +299,43 @@ def annotation_react(
         if segimgpng is not None:
             images_to_draw = [segimgpng]
         fig = plot_common.add_layout_images_to_fig(fig, images_to_draw)
-    return (fig, masks_data, segmentation_data, "Stroke width: %d" % (stroke_width,))
+    return (
+        fig,
+        masks_data,
+        segmentation_data,
+        "Stroke width: %d" % (stroke_width,),
+        classifier_store_data,
+    )
+
+
+# set the download url to the contents of the annotations-store (so they can be
+# downloaded from the browser's memory)
+app.clientside_callback(
+    """
+function(the_store_data) {
+    let s = JSON.stringify(the_store_data);
+    let b = new Blob([s],{type: 'text/plain'});
+    let url = URL.createObjectURL(b);
+    return url;
+}
+""",
+    Output("download", "href"),
+    [Input("classifier-store", "data")],
+)
+
+# click on download link via button
+app.clientside_callback(
+    """
+function(download_button_n_clicks)
+{
+    let download_a=document.getElementById("download");
+    download_a.click();
+    return '';
+}
+""",
+    Output("dummy", "children"),
+    [Input("download-button", "n_clicks")],
+)
 
 
 if __name__ == "__main__":

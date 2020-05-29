@@ -23,9 +23,7 @@ segmentation").
 from itertools import combinations_with_replacement
 import itertools
 import numpy as np
-import matplotlib.pyplot as plt
-from skimage import io, filters, feature, segmentation
-from skimage import img_as_float32
+from skimage import filters, feature, img_as_float32
 from sklearn.ensemble import RandomForestClassifier
 from time import time
 
@@ -98,6 +96,7 @@ def compute_features(
         features = list(itertools.chain.from_iterable(all_results))
     else:
         features = _compute_features_gray(
+            # TODO If this code is run, dim is not defined
             img[..., dim],
             intensity=intensity,
             edges=edges,
@@ -118,7 +117,7 @@ def trainable_segmentation(
     sigma_min=0.5,
     sigma_max=16,
     downsample=10,
-    clf=None
+    clf=None,
 ):
     """
     Segmentation using labeled parts of the image and a random forest classifier.
@@ -136,7 +135,7 @@ def trainable_segmentation(
     t2 = time()
     if clf is None:
         if mask is None:
-            raise ValueError("if no classifier clf is passed, you must specify a mask")
+            raise ValueError("If no classifier clf is passed, you must specify a mask.")
         training_data = features[:, mask > 0].T
         training_labels = mask[mask > 0].ravel()
         data = features[:, mask == 0].T
@@ -146,12 +145,12 @@ def trainable_segmentation(
         result = np.copy(mask)
     else:
         # we have to flatten all but the first dimension of features
-        data = features.reshape((features.shape[0],np.product(features.shape[1:]))).T
+        data = features.reshape((features.shape[0], np.product(features.shape[1:]))).T
         t3 = time()
     t4 = time()
     labels = clf.predict(data)
     if mask is None:
-        result=labels.reshape(img.shape[:2])
+        result = labels.reshape(img.shape[:2])
     else:
         result[mask == 0] = labels
     t5 = time()
