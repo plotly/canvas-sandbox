@@ -110,7 +110,7 @@ def compute_features(
 
 def trainable_segmentation(
     img,
-    mask,
+    mask=None,
     multichannel=True,
     intensity=True,
     edges=True,
@@ -118,6 +118,7 @@ def trainable_segmentation(
     sigma_min=0.5,
     sigma_max=16,
     downsample=10,
+    clf=None
 ):
     """
     Segmentation using labeled parts of the image and a random forest classifier.
@@ -132,18 +133,26 @@ def trainable_segmentation(
         sigma_min=sigma_min,
         sigma_max=sigma_max,
     )
-    t2 = time()
-    training_data = features[:, mask > 0].T
-    training_labels = mask[mask > 0].ravel()
-    data = features[:, mask == 0].T
-    t3 = time()
-    clf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
-    clf.fit(training_data[::downsample], training_labels[::downsample])
+    if clf is None:
+        if mask is None:
+            raise ValueError("if no classifier clf is passed, you must specify a mask")
+        t2 = time()
+        training_data = features[:, mask > 0].T
+        training_labels = mask[mask > 0].ravel()
+        data = features[:, mask == 0].T
+        t3 = time()
+        clf = RandomForestClassifier(n_estimators=100, n_jobs=-1)
+        clf.fit(training_data[::downsample], training_labels[::downsample])
+        result = np.copy(mask)
+    else:
+        data = features.T
     t4 = time()
     labels = clf.predict(data)
+    if mask is None:
+        result=labels
+    else:
+        result[mask == 0] = labels
     t5 = time()
-    result = np.copy(mask)
-    result[mask == 0] = labels
     print("trainable_segmentation timings:")
     print("\tcompute features", t2 - t1)
     print("\tfit", t4 - t3)

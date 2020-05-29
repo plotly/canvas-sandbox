@@ -3,16 +3,17 @@ import dash
 from dash.dependencies import Input, Output, State, ClientsideFunction
 import dash_html_components as html
 import dash_core_components as dcc
-import utils
-import shape_utils
 import plot_common
-from PIL import Image
 import json
 from shapes_to_segmentations import compute_segmentations
 import io
 import base64
 import PIL.Image
+import pdb
 
+# TESTING
+import use_loaded_img_classifier
+ 
 DEFAULT_STROKE_WIDTH = 3  # gives line width of 2^3 = 8
 
 DEFAULT_IMAGE_PATH = "assets/segmentation_img.jpg"
@@ -164,16 +165,24 @@ def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
     # add 1 because classifier takes 0 to mean no mask
     shape_layers = [color_to_class(shape["line"]["color"]) + 1 for shape in mask_shapes]
     print(mask_shapes)
-    segimg = compute_segmentations(
+    label_to_colors_args={
+        "colormap": class_label_colormap,
+        "color_class_offset": -1,
+    }
+    segimg,_,clf = compute_segmentations(
         mask_shapes,
         img_path=image_path,
         segmenter_args=segmenter_args,
         shape_layers=shape_layers,
-        label_to_colors_args={
-            "colormap": class_label_colormap,
-            "color_class_offset": -1,
-        },
-    )[0]
+        label_to_colors_args=label_to_colors_args
+    )
+    # TESTING>
+    # store the classifier
+    use_loaded_img_classifier.save_img_classifier(clf,segmenter_args,label_to_colors_args)
+    # use the classifier
+    pdb.set_trace()
+    use_loaded_img_classifier.use_img_classifier()
+    # <TESTING
     segimgpng = plot_common.img_array_to_pil_image(segimg)
     return segimgpng
 
@@ -188,7 +197,8 @@ def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
     [
         Input("graph", "relayoutData"),
         Input(
-            {"type": "label-class-button", "index": dash.dependencies.ALL}, "n_clicks"
+            {"type": "label-class-button", "index": dash.dependencies.ALL},
+             "n_clicks_timestamp"
         ),
         Input("stroke-width", "value"),
         Input("show-segmentation", "value"),
@@ -213,7 +223,6 @@ def annotation_react(
             masks_data["shapes"] = graph_relayoutData["shapes"]
         else:
             return dash.no_update
-    images = [DEFAULT_IMAGE_PATH]
     stroke_width = int(round(2 ** (stroke_width_value)))
     # find label class value by finding button with the greatest n_clicks
     print("any_label_class_button_value", any_label_class_button_value)

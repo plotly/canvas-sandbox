@@ -94,4 +94,4 @@ def compute_segmentations(
     color_seg = label_to_colors(seg, **label_to_colors_args)
     # color_seg is a 3d tensor representing a colored image whereas seg is a
     # matrix whose entries represent the classes
-    return (color_seg, seg)
+    return (color_seg, seg, clf)
