@@ -1,11 +1,9 @@
 import PIL.Image
 import numpy as np
-import json
 import skimage
 import skimage.util
 import skimage.io
 import skimage.color
-from skimage import segmentation
 import io
 import shape_utils
 from image_segmentation import trainable_segmentation
@@ -67,7 +65,6 @@ def compute_segmentations(
 
     # load original image
     img = img_to_ubyte_array(img_path)
-    blank_img = np.zeros_like(img)
 
     # load labels
     label_imgs = []
@@ -95,3 +92,34 @@ def compute_segmentations(
     # color_seg is a 3d tensor representing a colored image whereas seg is a
     # matrix whose entries represent the classes
     return (color_seg, seg, clf)
+
+
+def blend_image_and_classified_regions(img, classr):
+    """
+    If img has an alpha channel, it is ignored.
+    If classr has an alpha channel, the images are combined as
+        out_img = img * (1 - alpha) + classr * alpha
+    If classr doesn't have an alpha channel, just classr is returned.
+    Both images are converted to ubyte before blending and the alpha channel is
+    divided by 255 to get the scalar.
+    The returned image has no alpha channel.
+    """
+    img = skimage.img_as_ubyte(img)
+    classr = skimage.img_as_ubyte(classr)
+    img = img[:, :, :3]
+    if classr.shape[2] < 4:
+        return classr
+    alpha = (classr[:, :, 3] / 255)[:, :, None]
+    classr = classr[:, :, :3]
+    out_img = img * (1 - alpha) + classr * alpha
+    out_img = np.round(out_img)
+    out_img[out_img > 255] = 255
+    out_img[out_img < 0] = 0
+    return out_img.astype("uint8")
+
+
+def blend_image_and_classified_regions_pil(img, classr):
+    img = np.array(img)
+    classr = np.array(classr)
+    out_img = blend_image_and_classified_regions(img, classr)
+    return PIL.Image.fromarray(out_img)

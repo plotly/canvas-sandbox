@@ -5,7 +5,10 @@ import dash_html_components as html
 import dash_core_components as dcc
 import plot_common
 import json
-from shapes_to_segmentations import compute_segmentations
+from shapes_to_segmentations import (
+    compute_segmentations,
+    blend_image_and_classified_regions_pil,
+)
 import io
 import base64
 import PIL.Image
@@ -163,6 +166,15 @@ app.layout = html.Div(
         ),
         html.Button("Download classifier", id="download-button"),
         html.Div(id="dummy", style={"display": "none"}),
+        dcc.Store(id="classified-image-store", data=""),
+        html.A(
+            id="download-image",
+            download="classified-image.png",
+            # make invisble, we just want it to click on it
+            style={"display": "none"},
+        ),
+        html.Button("Download classified image", id="download-image-button"),
+        html.Div(id="dummy2", style={"display": "none"}),
     ],
 )
 
@@ -207,6 +219,7 @@ def show_segmentation(image_path, mask_shapes, segmenter_args):
         Output("segmentation", "data"),
         Output("stroke-width-display", "children"),
         Output("classifier-store", "data"),
+        Output("classified-image-store", "data"),
     ],
     [
         Input("graph", "relayoutData"),
@@ -223,6 +236,7 @@ def show_segmentation(image_path, mask_shapes, segmenter_args):
         State("masks", "data"),
         State("segmentation", "data"),
         State("classifier-store", "data"),
+        State("classified-image-store", "data"),
     ],
 )
 def annotation_react(
@@ -235,6 +249,7 @@ def annotation_react(
     masks_data,
     segmentation_data,
     classifier_store_data,
+    classified_image_store_data,
 ):
     cbcontext = [p["prop_id"] for p in dash.callback_context.triggered][0]
     if cbcontext == "graph.relayoutData":
@@ -292,6 +307,11 @@ def annotation_react(
                     segmentation_data = store_shapes_seg_pair(
                         segmentation_data, sh, segimgpng
                     )
+                    classified_image_store_data = plot_common.pil_image_to_uri(
+                        blend_image_and_classified_regions_pil(
+                            PIL.Image.open(DEFAULT_IMAGE_PATH), segimgpng
+                        )
+                    )
             except ValueError:
                 # if segmentation fails, draw nothing
                 pass
@@ -305,10 +325,11 @@ def annotation_react(
         segmentation_data,
         "Stroke width: %d" % (stroke_width,),
         classifier_store_data,
+        classified_image_store_data,
     )
 
 
-# set the download url to the contents of the annotations-store (so they can be
+# set the download url to the contents of the classifier-store (so they can be
 # downloaded from the browser's memory)
 app.clientside_callback(
     """
@@ -335,6 +356,32 @@ function(download_button_n_clicks)
 """,
     Output("dummy", "children"),
     [Input("download-button", "n_clicks")],
+)
+
+# set the download url to the contents of the classified-image-store (so they can be
+# downloaded from the browser's memory)
+app.clientside_callback(
+    """
+function(the_image_store_data) {
+    return the_image_store_data;
+}
+""",
+    Output("download-image", "href"),
+    [Input("classified-image-store", "data")],
+)
+
+# click on download link via button
+app.clientside_callback(
+    """
+function(download_image_button_n_clicks)
+{
+    let download_a=document.getElementById("download-image");
+    download_a.click();
+    return '';
+}
+""",
+    Output("dummy2", "children"),
+    [Input("download-image-button", "n_clicks")],
 )
 
 

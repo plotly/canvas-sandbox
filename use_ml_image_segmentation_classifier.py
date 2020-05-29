@@ -5,6 +5,7 @@ Specify files to use on the command line like so:
     CLF_PATH=path/to/classifier.json \\
     IMG_PATH=path/to/image/to/classify.some_image_ending \\
     OUT_IMG_PATH=path/to/where/to/put/classified/image.some_image_ending \\
+    OUT_BLEND_PATH=path/to/where/to/put/classified/blended/with/original/image.some_image_ending \\
     python use_ml_image_segmentation_classifier.py
 
 some_image_ending can be a common image format's ending, e.g., png or jpg
@@ -20,6 +21,7 @@ import base64
 import io
 import skimage.io
 import json
+import PIL.Image
 
 
 def getenv(e):
@@ -60,4 +62,9 @@ if __name__ == "__main__":
     clf_path = getenv("CLF_PATH")
     img_path = getenv("IMG_PATH")
     out_img_path = getenv("OUT_IMG_PATH")
+    blend_path = getenv("OUT_BLEND_PATH")
     use_img_classifier(clf_path, img_path, out_img_path)
+    blend_img = shapes_to_segmentations.blend_image_and_classified_regions_pil(
+        PIL.Image.open(img_path), PIL.Image.open(out_img_path)
+    )
+    blend_img.save(blend_path)
