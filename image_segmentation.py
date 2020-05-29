@@ -133,10 +133,10 @@ def trainable_segmentation(
         sigma_min=sigma_min,
         sigma_max=sigma_max,
     )
+    t2 = time()
     if clf is None:
         if mask is None:
             raise ValueError("if no classifier clf is passed, you must specify a mask")
-        t2 = time()
         training_data = features[:, mask > 0].T
         training_labels = mask[mask > 0].ravel()
         data = features[:, mask == 0].T
@@ -145,11 +145,13 @@ def trainable_segmentation(
         clf.fit(training_data[::downsample], training_labels[::downsample])
         result = np.copy(mask)
     else:
-        data = features.T
+        # we have to flatten all but the first dimension of features
+        data = features.reshape((features.shape[0],np.product(features.shape[1:]))).T
+        t3 = time()
     t4 = time()
     labels = clf.predict(data)
     if mask is None:
-        result=labels
+        result=labels.reshape(img.shape[:2])
     else:
         result[mask == 0] = labels
     t5 = time()

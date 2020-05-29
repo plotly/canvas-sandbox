@@ -180,8 +180,10 @@ def show_segmentation(fig, image_path, mask_shapes, segmenter_args):
     # store the classifier
     use_loaded_img_classifier.save_img_classifier(clf,segmenter_args,label_to_colors_args)
     # use the classifier
-    pdb.set_trace()
     use_loaded_img_classifier.use_img_classifier()
+    #use_loaded_img_classifier.use_img_classifier_in_mem(clf,
+    #                                                    segmenter_args,
+    #                                                    label_to_colors_args)
     # <TESTING
     segimgpng = plot_common.img_array_to_pil_image(segimg)
     return segimgpng
