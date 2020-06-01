@@ -94,7 +94,6 @@ def look_up_seg(d, key):
 app.layout = html.Div(
     id="app-container",
     children=[
-        # Banner display
         html.Div(
             id="banner",
             children=[
@@ -106,6 +105,18 @@ app.layout = html.Div(
                 html.Img(id="logo", src=app.get_asset_url("dash-logo-new.png"),),
             ],
             className="twelve columns app-background",
+        ),
+        html.Div(
+            id="description",
+            children=[
+                html.P(
+                    "This is an example of interactive machine learning for image classification. To train the classifier, draw some marks on the picture using different colors for different parts, like in the example image. Then enable \"Show segmentation\" to see the classes a Random Forest Classifier gave to regions of the image, based on the marks you used as a guide. You may add more marks to clarify parts of the image where the classifier was not sucessful and the classification will update.",
+                    className="ten columns"),
+                html.Img(id='example-image',
+                src='assets/segmentation_img_example_marks.png',
+                className="two columns")
+            ],
+            className="twelve columns app-background"
         ),
         html.Div(
             id="main-content",
@@ -214,7 +225,7 @@ app.layout = html.Div(
                     className="six columns app-background",
                 ),
             ],
-            className="eleven columns",
+            className="twelve columns"
         ),
         html.Div(
             id="no-display",
