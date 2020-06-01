@@ -103,10 +103,7 @@ app.layout = html.Div(
                     id="title",
                     className="seven columns",
                 ),
-                html.Img(
-                    id="logo",
-                    src=app.get_asset_url("dash-logo-new.png"),
-                ),
+                html.Img(id="logo", src=app.get_asset_url("dash-logo-new.png"),),
             ],
             className="twelve columns app-background",
         ),
@@ -195,30 +192,29 @@ app.layout = html.Div(
                         html.A(
                             id="download",
                             download="classifier.json",
-                            # make invisble, we just want it to click on it
-                            style={"display": "none"},
+                            children=[
+                                html.Button("Download classifier", id="download-button")
+                            ],
                         ),
-                        html.Button("Download classifier", id="download-button"),
                         html.A(
                             id="download-image",
                             download="classified-image.png",
-                            # make invisble, we just want it to click on it
-                            style={"display": "none"},
-                        ),
-                        html.Button(
-                            "Download classified image", id="download-image-button"
+                            children=[
+                                html.Button(
+                                    "Download classified image",
+                                    id="download-image-button",
+                                )
+                            ],
                         ),
                     ],
                     className="six columns app-background",
                 ),
             ],
-            className="eleven columns"
+            className="eleven columns",
         ),
         html.Div(
             id="no-display",
             children=[
-                html.Div(id="dummy", style={"display": "none"}),
-                html.Div(id="dummy2", style={"display": "none"}),
                 # Store for user created masks
                 # data is a list of dicts describing shapes
                 dcc.Store(id="masks", data={"shapes": []}),
@@ -396,20 +392,6 @@ function(the_store_data) {
     [Input("classifier-store", "data")],
 )
 
-# click on download link via button
-app.clientside_callback(
-    """
-function(download_button_n_clicks)
-{
-    let download_a=document.getElementById("download");
-    download_a.click();
-    return '';
-}
-""",
-    Output("dummy", "children"),
-    [Input("download-button", "n_clicks")],
-)
-
 # set the download url to the contents of the classified-image-store (so they can be
 # downloaded from the browser's memory)
 app.clientside_callback(
@@ -421,21 +403,6 @@ function(the_image_store_data) {
     Output("download-image", "href"),
     [Input("classified-image-store", "data")],
 )
-
-# click on download link via button
-app.clientside_callback(
-    """
-function(download_image_button_n_clicks)
-{
-    let download_a=document.getElementById("download-image");
-    download_a.click();
-    return '';
-}
-""",
-    Output("dummy2", "children"),
-    [Input("download-image-button", "n_clicks")],
-)
-
 
 if __name__ == "__main__":
     app.run_server(debug=True)
