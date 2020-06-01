@@ -118,6 +118,7 @@ def trainable_segmentation(
     sigma_max=16,
     downsample=10,
     clf=None,
+    verbose=False
 ):
     """
     Segmentation using labeled parts of the image and a random forest classifier.
@@ -154,8 +155,9 @@ def trainable_segmentation(
     else:
         result[mask == 0] = labels
     t5 = time()
-    print("trainable_segmentation timings:")
-    print("\tcompute features", t2 - t1)
-    print("\tfit", t4 - t3)
-    print("\tpredict", t5 - t4)
+    if verbose:
+        print("trainable_segmentation timings:")
+        print("\tcompute features", t2 - t1)
+        print("\tfit", t4 - t3)
+        print("\tpredict", t5 - t4)
     return result, clf

@@ -251,7 +251,6 @@ def show_segmentation(image_path, mask_shapes, segmenter_args):
     """ adds an image showing segmentations to a figure's layout """
     # add 1 because classifier takes 0 to mean no mask
     shape_layers = [color_to_class(shape["line"]["color"]) + 1 for shape in mask_shapes]
-    print(mask_shapes)
     label_to_colors_args = {
         "colormap": class_label_colormap,
         "color_class_offset": -1,
@@ -316,7 +315,6 @@ def annotation_react(
             return dash.no_update
     stroke_width = int(round(2 ** (stroke_width_value)))
     # find label class value by finding button with the greatest n_clicks
-    print("any_label_class_button_value", any_label_class_button_value)
     if any_label_class_button_value is None:
         label_class_value = DEFAULT_LABEL_CLASS
     else:
@@ -344,17 +342,14 @@ def annotation_react(
             ]
         )
         if sh in segmentation_data.keys():
-            print("key found")
             segimgpng = look_up_seg(segmentation_data, sh)
         else:
-            print("computing new segmentation")
             segimgpng = None
             try:
                 feature_opts = {
                     key: (key in segmentation_features_value)
                     for key in SEG_FEATURE_TYPES
                 }
-                print("sigma_range_slider_value", sigma_range_slider_value)
                 feature_opts["sigma_min"] = sigma_range_slider_value[0]
                 feature_opts["sigma_max"] = sigma_range_slider_value[1]
                 if len(segmentation_features_value) > 0:
