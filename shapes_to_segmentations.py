@@ -11,6 +11,11 @@ import plotly.express as px
 
 
 def img_to_ubyte_array(img):
+    """
+    PIL.Image.open is used so that a io.BytesIO object containing the image data
+    can be passed as img and parsed into an image. Passing a path to an image
+    for img will also work.
+    """
     ret_ = skimage.util.img_as_ubyte(np.array(PIL.Image.open(img)))
     return ret_
 

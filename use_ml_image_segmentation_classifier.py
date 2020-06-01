@@ -21,8 +21,6 @@ import base64
 import io
 import skimage.io
 import json
-import PIL.Image
-
 
 def getenv(e):
     try:
@@ -64,7 +62,7 @@ if __name__ == "__main__":
     out_img_path = getenv("OUT_IMG_PATH")
     blend_path = getenv("OUT_BLEND_PATH")
     use_img_classifier(clf_path, img_path, out_img_path)
-    blend_img = shapes_to_segmentations.blend_image_and_classified_regions_pil(
-        PIL.Image.open(img_path), PIL.Image.open(out_img_path)
+    blend_img = shapes_to_segmentations.blend_image_and_classified_regions(
+        skimage.io.imread(img_path), skimage.io.imread(out_img_path)
     )
-    blend_img.save(blend_path)
+    skimage.io.imsave(blend_path,blend_img)
