@@ -1,0 +1,21 @@
+/* make the graph still visible while the loading spinner is displayed */
+*[data-dash-is-loading="true"]{
+    visibility: visible;
+}
+
+.app-background {
+    background-color: lightgrey;
+    padding: 10px;
+    margin: 5px;
+    border-radius: 5px;
+}
+
+#right-column {
+    position: absolute;
+    right: 3px;
+}
+
+#left-column {
+    position: absolute;
+    left: 8px;
+}

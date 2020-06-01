@@ -21,7 +21,7 @@ DEFAULT_IMAGE_PATH = "assets/segmentation_img.jpg"
 SEG_FEATURE_TYPES = ["intensity", "edges", "texture"]
 
 # the number of different classes for labels
-NUM_LABEL_CLASSES = 15
+NUM_LABEL_CLASSES = 5
 DEFAULT_LABEL_CLASS = 0
 class_label_colormap = px.colors.qualitative.Light24
 class_labels = list(range(NUM_LABEL_CLASSES))
@@ -41,7 +41,7 @@ app = dash.Dash(__name__)
 server = app.server
 
 
-def mf(
+def make_default_figure(
     images=[DEFAULT_IMAGE_PATH],
     stroke_color=class_to_color(DEFAULT_LABEL_CLASS),
     stroke_width=DEFAULT_STROKE_WIDTH,
@@ -94,87 +94,144 @@ def look_up_seg(d, key):
 app.layout = html.Div(
     id="app-container",
     children=[
-        dcc.Loading(
-            id="segmentations-loading",
-            type="circle",
+        # Banner display
+        html.Div(
+            id="banner",
             children=[
-                # Graph
-                dcc.Graph(
-                    id="graph",
-                    figure=mf(),
-                    config={
-                        "modeBarButtonsToAdd": [
-                            "drawrect",
-                            "drawopenpath",
-                            "eraseshape",
-                        ]
-                    },
+                html.H1(
+                    "Interactive Machine Learning: Image Segmentation",
+                    id="title",
+                    className="seven columns",
+                ),
+                html.Img(
+                    id="logo",
+                    src=app.get_asset_url("dash-logo-new.png"),
                 ),
             ],
+            className="twelve columns app-background",
         ),
-        # Store for user created masks
-        # data is a list of dicts describing shapes
-        dcc.Store(id="masks", data={"shapes": []}),
-        # Store for storing segmentations from shapes
-        # the keys are hashes of shape lists and the data are pngdata
-        # representing the corresponding segmentation
-        # this is so we can download annotations and also not recompute
-        # needlessly old segmentations
-        dcc.Store(id="segmentation", data={}),
-        html.H6("Label class"),
-        # Label class chosen with buttons
         html.Div(
-            id="label-class-buttons",
+            id="main-content",
             children=[
-                html.Button(
-                    "%2d" % (n,),
-                    id={"type": "label-class-button", "index": n},
-                    style={"background-color": class_to_color(c)},
-                )
-                for n, c in enumerate(class_labels)
+                html.Div(
+                    id="left-column",
+                    children=[
+                        dcc.Loading(
+                            id="segmentations-loading",
+                            type="circle",
+                            children=[
+                                # Graph
+                                dcc.Graph(
+                                    id="graph",
+                                    figure=make_default_figure(),
+                                    config={
+                                        "modeBarButtonsToAdd": [
+                                            "drawrect",
+                                            "drawopenpath",
+                                            "eraseshape",
+                                        ]
+                                    },
+                                ),
+                            ],
+                        )
+                    ],
+                    className="six columns app-background",
+                ),
+                html.Div(
+                    id="right-column",
+                    children=[
+                        html.H6("Label class"),
+                        # Label class chosen with buttons
+                        html.Div(
+                            id="label-class-buttons",
+                            children=[
+                                html.Button(
+                                    "%2d" % (n,),
+                                    id={"type": "label-class-button", "index": n},
+                                    style={"background-color": class_to_color(c)},
+                                )
+                                for n, c in enumerate(class_labels)
+                            ],
+                        ),
+                        html.H6(id="stroke-width-display"),
+                        # Slider for specifying stroke width
+                        dcc.Slider(
+                            id="stroke-width",
+                            min=0,
+                            max=6,
+                            step=0.1,
+                            value=DEFAULT_STROKE_WIDTH,
+                        ),
+                        # Indicate showing most recently computed segmentation
+                        dcc.Checklist(
+                            id="show-segmentation",
+                            options=[
+                                {
+                                    "label": "Show segmentation",
+                                    "value": "Show segmentation",
+                                }
+                            ],
+                            value=[],
+                        ),
+                        html.H6("Features"),
+                        dcc.Checklist(
+                            id="segmentation-features",
+                            options=[
+                                {"label": l.capitalize(), "value": l}
+                                for l in SEG_FEATURE_TYPES
+                            ],
+                            value=["intensity", "edges"],
+                        ),
+                        html.H6("Blurring parameter"),
+                        dcc.RangeSlider(
+                            id="sigma-range-slider",
+                            min=0.01,
+                            max=20,
+                            step=0.01,
+                            value=[0.5, 16],
+                        ),
+                        # We use this pattern because we want to be able to download the
+                        # annotations by clicking on a button
+                        html.A(
+                            id="download",
+                            download="classifier.json",
+                            # make invisble, we just want it to click on it
+                            style={"display": "none"},
+                        ),
+                        html.Button("Download classifier", id="download-button"),
+                        html.A(
+                            id="download-image",
+                            download="classified-image.png",
+                            # make invisble, we just want it to click on it
+                            style={"display": "none"},
+                        ),
+                        html.Button(
+                            "Download classified image", id="download-image-button"
+                        ),
+                    ],
+                    className="six columns app-background",
+                ),
+            ],
+            className="eleven columns"
+        ),
+        html.Div(
+            id="no-display",
+            children=[
+                html.Div(id="dummy", style={"display": "none"}),
+                html.Div(id="dummy2", style={"display": "none"}),
+                # Store for user created masks
+                # data is a list of dicts describing shapes
+                dcc.Store(id="masks", data={"shapes": []}),
+                # Store for storing segmentations from shapes
+                # the keys are hashes of shape lists and the data are pngdata
+                # representing the corresponding segmentation
+                # this is so we can download annotations and also not recompute
+                # needlessly old segmentations
+                dcc.Store(id="segmentation", data={}),
+                dcc.Store(id="classifier-store", data={}),
+                dcc.Store(id="classified-image-store", data=""),
             ],
         ),
-        html.H6(id="stroke-width-display"),
-        # Slider for specifying stroke width
-        dcc.Slider(
-            id="stroke-width", min=0, max=6, step=0.1, value=DEFAULT_STROKE_WIDTH
-        ),
-        # Indicate showing most recently computed segmentation
-        dcc.Checklist(
-            id="show-segmentation",
-            options=[{"label": "Show segmentation", "value": "Show segmentation"}],
-            value=[],
-        ),
-        html.H6("Features"),
-        dcc.Checklist(
-            id="segmentation-features",
-            options=[{"label": l.capitalize(), "value": l} for l in SEG_FEATURE_TYPES],
-            value=["intensity", "edges"],
-        ),
-        html.H6("Blurring parameter"),
-        dcc.RangeSlider(
-            id="sigma-range-slider", min=0.01, max=20, step=0.01, value=[0.5, 16]
-        ),
-        dcc.Store(id="classifier-store", data={}),
-        # We use this pattern because we want to be able to download the
-        # annotations by clicking on a button
-        html.A(
-            id="download",
-            download="classifier.json",
-            # make invisble, we just want it to click on it
-            style={"display": "none"},
-        ),
-        html.Button("Download classifier", id="download-button"),
-        html.Div(id="dummy", style={"display": "none"}),
-        dcc.Store(id="classified-image-store", data=""),
-        html.A(
-            id="download-image",
-            download="classified-image.png",
-            # make invisble, we just want it to click on it
-            style={"display": "none"},
-        ),
-        html.Button("Download classified image", id="download-image-button"),
-        html.Div(id="dummy2", style={"display": "none"}),
     ],
 )
 
@@ -267,7 +324,7 @@ def annotation_react(
             enumerate(any_label_class_button_value),
             key=lambda t: 0 if t[1] is None else t[1],
         )[0]
-    fig = mf(
+    fig = make_default_figure(
         stroke_color=class_to_color(label_class_value),
         stroke_width=stroke_width,
         shapes=masks_data["shapes"],
