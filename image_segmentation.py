@@ -96,8 +96,7 @@ def compute_features(
         features = list(itertools.chain.from_iterable(all_results))
     else:
         features = _compute_features_gray(
-            # TODO If this code is run, dim is not defined
-            img[..., dim],
+            img,
             intensity=intensity,
             edges=edges,
             texture=texture,
