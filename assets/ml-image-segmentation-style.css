@@ -19,3 +19,13 @@
     position: absolute;
     left: 8px;
 }
+
+#banner {
+    margin-bottom: 18px;
+    position: relative;
+}
+
+#logo {
+    position: absolute;
+    top: 25%;
+}
