@@ -48,3 +48,7 @@
 .tooltip:hover .tooltiptext {
     visibility: visible;
 }
+
+#description {
+    margin-bottom: 20px;
+}
