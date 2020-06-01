@@ -193,8 +193,12 @@ app.layout = html.Div(
                             id="download",
                             download="classifier.json",
                             children=[
-                                html.Button("Download classifier", id="download-button")
+                                html.Button("Download classifier", id="download-button"),
+                                html.Span(
+                                    "A script for using the classifier can be found in the source repository of this webapp: https://github.com/plotly/dash-sample-apps/.",
+                                          className="tooltiptext")
                             ],
+                            className="tooltip"
                         ),
                         html.A(
                             id="download-image",
