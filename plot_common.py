@@ -2,7 +2,6 @@ import base64
 import PIL.Image
 import io
 import numpy as np
-import pdb
 import plotly.graph_objects as go
 import skimage.util
 from plotly.utils import ImageUriValidator
@@ -25,7 +24,7 @@ def str_to_img_ndarrary(s):
     ndarray will have dimensions (width,height,number_of_color_channels)
     This format is compatible with skimage
     """
-    img = str_to_pil_img()
+    img = str_to_pil_img(s)
     img_array = np.array(img)
     return skimage.util.img_as_float(img_array)
 
@@ -136,9 +135,18 @@ def img_array_to_layout_image_fig(ia):
     return pil_image_to_layout_image_fig(img)
 
 
-def img_array_to_mime_bytes(img_array):
+def pil_image_to_uri(img):
+    return ImageUriValidator.pil_image_to_uri(img)
+
+
+def img_array_to_uri(img_array):
     imgf = img_array_to_pil_image(img_array)
-    uri = ImageUriValidator.pil_image_to_uri(imgf)
+    uri = pil_image_to_uri(imgf)
+    return uri
+
+
+def img_array_to_mime_bytes(img_array):
+    uri = img_array_to_uri(img_array)
     mime, contents = uri.split(";")
     typ, cont = contents.split(",")
     byt = base64.b64decode(cont)
